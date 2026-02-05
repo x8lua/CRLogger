@@ -3,53 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRLogger Pro 📝</title>
+    <title>CRLogger | Elite Logging System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); }
-        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .glow:focus { box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;500;700&display=swap');
+        
+        body {
+            font-family: 'JetBrains+Mono', monospace;
+            background: url('assets/bg.jpg') no-repeat center center fixed;
+            background-size: cover;
+            overflow: hidden; /* 防止滾動 */
+        }
+
+        .glass-panel {
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        /* 隱藏輸入框，直到點擊畫面 */
+        #inputOverlay {
+            display: none;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .cursor-blink {
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-6 text-white font-sans">
+<body class="min-h-screen flex flex-col items-center justify-between py-12 px-6 cursor-pointer" id="mainCanvas">
 
-    <div class="glass max-w-md w-full rounded-3xl p-8 shadow-2xl animate__animated animate__fadeIn">
-        <div class="flex items-center gap-3 mb-6">
-            <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-            <h1 class="text-2xl font-bold tracking-tight text-blue-400">CRLogger <span class="text-xs font-light text-gray-500">v1.0</span></h1>
+    <div class="w-full flex justify-center animate__animated animate__fadeInDown">
+        <img src="assets/logo.png" alt="CRLogger Logo" class="h-24 md:h-32 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+    </div>
+
+    <div class="text-center space-y-4 pointer-events-none">
+        <h2 class="text-gray-400 tracking-[0.5em] uppercase text-sm font-light">System Status: Active</h2>
+        <h1 class="text-white text-4xl md:text-6xl font-bold tracking-tighter">Welcome!</h1>
+        <div id="clock" class="text-blue-400 text-xl md:text-2xl font-mono tracking-widest opacity-80">
+            YYYY/MM/DD HH:MM:SS
         </div>
-        
-        <textarea id="box" 
-            class="glow w-full h-56 bg-gray-900/50 border border-gray-700 rounded-2xl p-4 text-white outline-none transition-all placeholder-gray-600 text-lg"
-            placeholder="喺呢度記錄課堂重點..."></textarea>
+        <p class="text-gray-500 text-xs animate-pulse mt-8 uppercase tracking-widest">Click anywhere to start logging <span class="cursor-blink">_</span></p>
+    </div>
 
-        <button id="send" 
-            class="mt-6 w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2">
-            <span>同步至雲端</span>
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-            </svg>
-        </button>
-        
-        <p id="msg" class="text-center mt-6 text-xs font-mono tracking-widest text-gray-500 uppercase"></p>
+    <div id="inputOverlay" class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
+        <div class="glass-panel max-w-lg w-full rounded-3xl p-8 transform transition-all" id="inputBox">
+            <div class="flex justify-between items-center mb-6">
+                <span class="text-blue-400 text-xs font-bold tracking-widest">NEW DATA ENTRY</span>
+                <button id="closeBtn" class="text-gray-500 hover:text-white transition-colors text-xl">&times;</button>
+            </div>
+            <textarea id="logInput" 
+                class="w-full h-48 bg-black/30 border border-white/10 rounded-2xl p-4 text-white outline-none focus:border-blue-500 transition-all placeholder-gray-700 text-lg resize-none"
+                placeholder="Secure logging in progress..."></textarea>
+            <button id="submitBtn" 
+                class="mt-6 w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-all uppercase tracking-widest">
+                Authorize Sync
+            </button>
+            <p id="statusMsg" class="text-center mt-4 text-[10px] text-gray-500 font-mono"></p>
+        </div>
+    </div>
+
+    <div class="text-gray-600 text-[10px] tracking-widest uppercase pointer-events-none">
+        Encrypted Endpoint: fgcahyuzvvralgvyaspo
     </div>
 
     <script type="module">
-        // 已經幫你填好咗！🚀
+        // 你的 Supabase Config (已根據之前的紀錄填好)
         const URL = "https://fgcahyuzvvralgvyaspo.supabase.co";
         const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZnY2FoeXV6dnZyYWxndnlhc3BvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyODQzMjAsImV4cCI6MjA4NTg2MDMyMH0.h0jZ3DYHgqo5J4us-gpmHGdpBgkVmFJG_svPqIBYIZI";
 
-        const btn = document.getElementById('send');
-        const box = document.getElementById('box');
-        const msg = document.getElementById('msg');
+        // 動態時鐘功能
+        function updateClock() {
+            const now = new Date();
+            const pad = (n) => n.toString().padStart(2, '0');
+            const timeStr = `${now.getFullYear()}/${pad(now.getMonth()+1)}/${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+            document.getElementById('clock').innerText = timeStr;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
 
-        btn.onclick = async () => {
-            const content = box.value.trim();
+        // 點擊顯示輸入框
+        const canvas = document.getElementById('mainCanvas');
+        const overlay = document.getElementById('inputOverlay');
+        const inputBox = document.getElementById('inputBox');
+        const closeBtn = document.getElementById('closeBtn');
+
+        canvas.addEventListener('click', (e) => {
+            if (e.target === canvas || canvas.contains(e.target)) {
+                overlay.style.display = 'flex';
+                document.getElementById('logInput').focus();
+            }
+        });
+
+        closeBtn.onclick = (e) => {
+            e.stopPropagation();
+            overlay.style.display = 'none';
+        };
+
+        // 防止點擊輸入框區域關閉自己
+        inputBox.onclick = (e) => e.stopPropagation();
+
+        // 提交功能
+        const submitBtn = document.getElementById('submitBtn');
+        const logInput = document.getElementById('logInput');
+        const statusMsg = document.getElementById('statusMsg');
+
+        submitBtn.onclick = async () => {
+            const content = logInput.value.trim();
             if(!content) return;
 
-            msg.innerText = "📡 Uplinking...";
-            btn.disabled = true;
-            btn.classList.add('opacity-50');
+            statusMsg.innerText = "UPLINKING TO CLOUD...";
             
             try {
                 const res = await fetch(`${URL}/rest/v1/logs`, {
@@ -57,29 +131,22 @@
                     headers: {
                         'apikey': KEY,
                         'Authorization': `Bearer ${KEY}`,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=minimal'
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ content: content })
                 });
 
                 if(res.ok) {
-                    msg.innerText = "✨ Successfully synced to cloud";
-                    box.value = "";
-                    if(navigator.vibrate) navigator.vibrate(50);
+                    statusMsg.innerText = "DATA SECURED SUCCESSFULLY";
+                    logInput.value = "";
+                    setTimeout(() => { overlay.style.display = 'none'; statusMsg.innerText = ""; }, 1500);
                 } else {
-                    const err = await res.json();
-                    msg.innerText = "❌ Error: " + (err.message || "Unknown");
-                    console.error(err);
+                    statusMsg.innerText = "UPLINK ERROR: AUTH_FAILED";
                 }
             } catch (e) {
-                msg.innerText = "❌ Connection Failed";
-            } finally {
-                btn.disabled = false;
-                btn.classList.remove('opacity-50');
-                setTimeout(() => { if(msg.innerText.includes('Successfully')) msg.innerText = ""; }, 3000);
+                statusMsg.innerText = "UPLINK ERROR: CONNECTION_LOST";
             }
-        }
+        };
     </script>
 </body>
 </html>
