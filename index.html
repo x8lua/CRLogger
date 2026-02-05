@@ -73,10 +73,22 @@
                 0%, 100% { transform: scale(1); }
                 50% { transform: scale(1.1); }
             }
-            .table-scroll {
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-            }
+.table-scroll {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        /* Center merged cells vertically */
+        td[rowspan] {
+            vertical-align: middle;
+        }
+        /* Leisure activity merged cell */
+        .leisure-cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            min-height: 60px;
+        }
             /* Mobile-optimized tap targets */
             @media (max-width: 640px) {
                 button {
@@ -255,27 +267,27 @@
                 { time: '14:00-14:40', period: 6, subjects: ['宗教', '經濟', '數學', '英文', '數學'] },
                 { time: '14:45-15:25', period: 7, subjects: ['宗教', '地理', '中文', '體育', '數學'] },
                 { time: '15:30-16:10', period: 8, subjects: ['附加數學', '歷史', '餘暇活動', '體育', '自然地理'] },
-                { time: '16:15-16:55', period: 9, subjects: ['---', '---', '餘暇活動', '---', '---'] }
+                { time: '16:15-16:55', period: 9, subjects: ['---', '---', '餘暇活動', '---', '中文'] }
             ];
 
-            // Special rows (break/recess)
-            const specialRows = [
-                { time: '08:00-08:25', label: '祈禱/晨禱', merged: true },
-                { time: '09:05-09:10', label: '小息', merged: true },
-                { time: '09:50-10:10', label: '小息', merged: true },
-                { time: '10:50-10:55', label: '小息', merged: true },
-                { time: '11:35-11:40', label: '小息', merged: true },
-                { time: '12:20-13:50', label: '中午 Lunch', merged: true },
-                { time: '13:50-14:00', label: '午禱', merged: true },
-                { time: '14:40-14:45', label: '小息', merged: true },
-                { time: '15:25-15:30', label: '小息', merged: true }
-            ];
+// Special rows (break/recess)
+        const specialRows = [
+            { time: '08:00-08:25', label: '祈禱/班務', merged: true, align: 'middle' },
+            { time: '09:05-09:10', label: '小休', merged: true, align: 'middle' },
+            { time: '09:50-10:10', label: '小息', merged: true, align: 'middle' },
+            { time: '10:50-10:55', label: '小休', merged: true, align: 'middle' },
+            { time: '11:35-11:40', label: '小休', merged: true, align: 'middle' },
+            { time: '12:20-13:50', label: '午休', merged: true, align: 'middle' },
+            { time: '13:50-14:00', label: '小休', merged: true, align: 'middle' },
+            { time: '14:40-14:45', label: '小休', merged: true, align: 'middle' },
+            { time: '15:25-15:30', label: '小休', merged: true, align: 'middle' }
+        ];
 
-            // Day-specific break rows (for 16:10-16:15)
-            const daySpecificBreaks = [
-                { time: '16:10-16:15', label: '小息', days: [1, 2] },  // Mon-Tue
-                { time: '16:10-16:15', label: '小息', days: [4, 5] }   // Thu-Fri
-            ];
+// Day-specific break rows (for 16:10-16:15)
+        const daySpecificBreaks = [
+            { time: '16:10-16:15', label: '小休', days: [1, 2] },  // Mon-Tue
+            { time: '16:10-16:15', label: '小休', days: [4, 5] }   // Thu-Fri
+        ];
 
             // State
             let editingSubject = null;
@@ -722,7 +734,17 @@
                                 }
                             }
 
-                            if (isUnclickable) {
+                            // Render merged 余暇活動 cell with proper centering
+                            if (shouldMerge) {
+                                cell.innerHTML = `
+                                    <div class="leisure-cell cursor-pointer hover:bg-white/10 transition-all"
+                                        onclick="openEditModal(${dayIndex}, ${row.period}, '${subjectName}')">
+                                        <div class="text-center">
+                                            <div class="text-sm ${statusClass}">${subjectName}</div>
+                                        </div>
+                                    </div>
+                                `;
+                            } else if (isUnclickable) {
                                 cell.innerHTML = `
                                     <div class="text-center p-1 opacity-30">
                                         <div class="text-xs sm:text-sm text-white">${subjectName}</div>
