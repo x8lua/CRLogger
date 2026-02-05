@@ -8,193 +8,665 @@
     <style>
         body {
             background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-            background-image: url('assets/bg.jpg');
+            background-image: url('https://raw.githubusercontent.com/x8lua/CRlogger/main/assets/bg.jpg');
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
             background-blend-mode: overlay;
+            background-color: rgba(15, 23, 42, 0.5);
         }
         .glass {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .glow:focus {
-            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
         .pulse-glow {
             animation: pulse-glow 2s ease-in-out infinite;
         }
         @keyframes pulse-glow {
-            0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
-            50% { box-shadow: 0 0 40px rgba(59, 130, 246, 0.6); }
+            0%, 100% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.5); }
+            50% { box-shadow: 0 0 60px rgba(59, 130, 246, 0.8); }
         }
-        .modal {
+        .fade-out {
             opacity: 0;
-            visibility: hidden;
-            transform: scale(0.9);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: translateY(-20px) scale(0.9);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .modal.active {
+        .visible-element {
             opacity: 1;
-            visibility: visible;
-            transform: scale(1);
+            pointer-events: auto;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .hidden-element {
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .timetable-cell {
+            transition: all 0.2s ease;
+        }
+        .timetable-cell:hover {
+            transform: scale(1.02);
+        }
+        .timetable-cell.today {
+            border-color: rgba(59, 130, 246, 0.8);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+        }
+        .subject-gray {
+            color: #ffffff;
+            opacity: 0.5;
+        }
+        .subject-gray:hover {
+            opacity: 0.8;
+        }
+        .subject-green {
+            color: #22c55e;
+        }
+        .delete-pulse {
+            animation: delete-pulse 0.5s ease-in-out;
+        }
+        @keyframes delete-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        .table-scroll {
+            overflow-x: auto;
         }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-6 text-white font-sans" id="page">
+<body class="min-h-screen flex flex-col items-center justify-center p-4 text-white font-sans" id="page">
 
-    <!-- Logo Area -->
-    <div class="fixed top-8 left-1/2 transform -translate-x-1/2">
-        <img src="assets/logo.png" alt="CRLogger Pro Logo" class="h-24 w-auto drop-shadow-2xl pulse-glow">
+    <!-- Logo Area - Middle Top -->
+    <div class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center z-10" id="logoContainer">
+        <img src="https://raw.githubusercontent.com/x8lua/CRlogger/main/assets/logo.png" alt="CRLogger Pro Logo" class="h-32 w-auto drop-shadow-2xl pulse-glow">
+        <p class="text-xl font-mono tracking-widest text-blue-400 mt-4" id="time"></p>
     </div>
 
-    <!-- Welcome Text & Time -->
-    <div class="fixed top-32 left-1/2 transform -translate-x-1/2 text-center">
-        <h2 class="text-3xl font-bold tracking-tight text-blue-400 mb-2">Welcome!</h2>
-        <p class="text-lg font-mono tracking-widest text-gray-300" id="time">Time now: --/--/-- --:--:--</p>
-    </div>
+    <!-- Main Content - Hidden initially -->
+    <div class="hidden-element w-full max-w-7xl mt-32" id="mainContent">
+        <!-- Header -->
+        <div class="glass rounded-2xl p-4 mb-4 text-center">
+            <h1 class="text-2xl font-bold text-white">聖若瑟教區中學第五校（中文部）</h1>
+            <p class="text-white opacity-60 mt-1">2025-2026 學年 高一甲 課表記錄表</p>
+        </div>
 
-    <!-- Main Card - Click anywhere to open modal -->
-    <div class="glass max-w-md w-full rounded-3xl p-12 shadow-2xl cursor-pointer hover:bg-white/5 transition-all duration-500" id="mainCard">
-        <div class="flex flex-col items-center justify-center h-full min-h-[200px]">
-            <div class="w-20 h-20 bg-blue-600/20 rounded-full flex items-center justify-center mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-            </div>
-            <p class="text-gray-400 text-lg">Click anywhere to write</p>
-            <p class="text-gray-600 text-sm mt-2">記錄課堂重點</p>
+        <!-- Timetable -->
+        <div class="glass rounded-2xl p-4 table-scroll">
+            <table class="w-full min-w-[800px] text-sm">
+                <thead>
+                    <tr>
+                        <th class="p-2 text-left text-white opacity-60 w-24">時間</th>
+                        <th class="p-2 text-center text-white w-28">MON<br><span class="text-xs opacity-50">星期一</span></th>
+                        <th class="p-2 text-center text-white w-28">TUE<br><span class="text-xs opacity-50">星期二</span></th>
+                        <th class="p-2 text-center text-white w-28">WED<br><span class="text-xs opacity-50">星期三</span></th>
+                        <th class="p-2 text-center text-white w-28">THU<br><span class="text-xs opacity-50">星期四</span></th>
+                        <th class="p-2 text-center text-white w-28">FRI<br><span class="text-xs opacity-50">星期五</span></th>
+                    </tr>
+                </thead>
+                <tbody id="timetableBody">
+                    <!-- Generated by JavaScript -->
+                </tbody>
+            </table>
         </div>
     </div>
 
-    <!-- Submit Modal -->
-    <div class="modal fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-6" id="modal">
-        <div class="glass max-w-lg w-full rounded-3xl p-8 shadow-2xl relative">
+    <!-- Subject Edit Modal -->
+    <div class="hidden-element fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" id="editModal">
+        <div class="glass max-w-md w-full rounded-3xl p-6 shadow-2xl relative" onclick="event.stopPropagation()">
             <!-- Close Button -->
-            <button id="close" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors">
+            <button id="editClose" class="absolute top-3 right-3 text-gray-400 hover:text-white transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
 
-            <div class="flex items-center gap-3 mb-6">
-                <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                <h1 class="text-xl font-bold tracking-tight text-blue-400">CRLogger <span class="text-xs font-light text-gray-500">v1.0</span></h1>
+            <!-- Header -->
+            <div class="flex items-center gap-2 mb-4">
+                <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <h2 class="text-lg font-bold text-blue-400" id="editTitle">Subject</h2>
             </div>
-            
-            <textarea id="box" 
-                class="glow w-full h-48 bg-gray-900/50 border border-gray-700 rounded-2xl p-4 text-white outline-none transition-all placeholder-gray-600 text-lg resize-none"
+
+            <!-- Subject Info -->
+            <p class="text-gray-400 text-sm mb-4" id="editSubject">Monday - Period 1</p>
+
+            <!-- Text Input -->
+            <textarea id="editBox" 
+                class="glow w-full h-40 bg-gray-900/50 border border-gray-700 rounded-2xl p-4 text-white outline-none transition-all placeholder-gray-600 resize-none"
                 placeholder="喺呢度記錄課堂重點..."></textarea>
 
-            <button id="send" 
-                class="mt-6 w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2">
-                <span>同步至雲端</span>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-                </svg>
+            <!-- MISS / HOLIDAY Toggle -->
+            <div class="flex gap-2 mt-4">
+                <button id="btnMiss" class="flex-1 py-2 rounded-xl border transition-all text-sm font-bold">MISS</button>
+                <button id="btnHoliday" class="flex-1 py-2 rounded-xl border transition-all text-sm font-bold">HOLIDAY</button>
+            </div>
+
+            <!-- Confirm Button -->
+            <button id="editConfirm" 
+                class="mt-4 w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-2xl shadow-lg active:scale-95 transition-all">
+                I Confirm
             </button>
-            
-            <p id="msg" class="text-center mt-6 text-xs font-mono tracking-widest text-gray-500 uppercase"></p>
+
+            <!-- Delete Button -->
+            <button id="editDelete" 
+                class="mt-3 w-full bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-600/50 font-bold py-3 rounded-2xl shadow-lg active:scale-95 transition-all hidden">
+                🗑️ Delete (Click 3 times)
+            </button>
+
+            <!-- Delete Confirm Counter -->
+            <p id="deleteCounter" class="text-center mt-2 text-sm text-gray-500 hidden">Click 0/3 to delete</p>
+
+            <!-- Message -->
+            <p id="editMsg" class="text-center mt-4 text-xs font-mono tracking-widest text-gray-500 uppercase"></p>
+        </div>
+    </div>
+
+    <!-- Success Toast -->
+    <div class="hidden-element fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50" id="successToast">
+        <div class="glass px-6 py-3 rounded-full shadow-2xl flex items-center gap-2">
+            <span class="text-green-400">✨</span>
+            <span class="text-white font-bold" id="successText">SUCCESS</span>
         </div>
     </div>
 
     <script type="module">
-        // 已經幫你填好咗！🚀
+        // GitHub Repository Assets URL
+        const GITHUB_REPO = "https://raw.githubusercontent.com/x8lua/CRlogger/main";
+        
+        // Supabase Config
         const URL = "https://fgcahyuzvvralgvyaspo.supabase.co";
         const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZnY2FoeXV6dnZyYWxndnlhc3BvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyODQzMjAsImV4cCI6MjA4NTg2MDMyMH0.h0jZ3DYHgqo5J4us-gpmHGdpBgkVmFJG_svPqIBYIZI";
 
-        const mainCard = document.getElementById('mainCard');
-        const modal = document.getElementById('modal');
-        const closeBtn = document.getElementById('close');
-        const box = document.getElementById('box');
-        const btn = document.getElementById('send');
-        const msg = document.getElementById('msg');
+        // Time periods configuration
+        const timePeriods = [
+            { time: '08:25-09:05', period: 1, subjects: ['經濟', '數學', '英文', '中文', '音樂/美勞'] },
+            { time: '09:10-09:50', period: 2, subjects: ['英文', '自然地理', '英文', '數學', '班主任'] },
+            { time: '10:10-10:50', period: 3, subjects: ['英文', '中文', '中國史', '數學', '英文'] },
+            { time: '10:55-11:35', period: 4, subjects: ['中國史', '中文', '自然科學', '經濟與會計', '資訊'] },
+            { time: '11:40-12:20', period: 5, subjects: ['中文', '英文', '自然科學', '中國史', '資訊'] },
+            { time: '14:00-14:40', period: 6, subjects: ['宗教', '經濟', '數學', '英文', '數學'] },
+            { time: '14:45-15:25', period: 7, subjects: ['宗教', '地理', '中文', '體育', '數學'] },
+            { time: '15:30-16:10', period: 8, subjects: ['附加數學', '歷史', '餘暇活動', '體育', '自然地理'] },
+            { time: '16:15-16:55', period: 9, subjects: ['---', '---', '餘暇活動', '---', '---'] }
+        ];
+
+        // Special rows (break/recess)
+        const specialRows = [
+            { time: '08:00-08:25', label: '祈禱/晨禱', merged: true },
+            { time: '09:05-09:10', label: '小息 Break', merged: true },
+            { time: '09:50-10:10', label: '小息 Recess', merged: true },
+            { time: '10:50-10:55', label: '小息 Break', merged: true },
+            { time: '11:35-11:40', label: '小息 Break', merged: true },
+            { time: '12:20-13:50', label: '中午 Lunch', merged: true },
+            { time: '13:50-14:00', label: '午禱', merged: true },
+            { time: '14:40-14:45', label: '小息 Break', merged: true },
+            { time: '15:25-15:30', label: '小息 Break', merged: true }
+        ];
+
+        // Day-specific break rows (for 16:10-16:15)
+        const daySpecificBreaks = [
+            { time: '16:10-16:15', label: '小息 Break', days: [1, 2] },  // Mon-Tue
+            { time: '16:10-16:15', label: '小息 Break', days: [4, 5] }   // Thu-Fri
+        ];
+
+        // State
+        let currentDay = getHKToday();
+        let editingSubject = null;
+        let deleteClicks = 0;
+        let currentStatus = ''; // '', 'miss', 'holiday'
+
+        // DOM Elements
+        const logoContainer = document.getElementById('logoContainer');
+        const mainContent = document.getElementById('mainContent');
+        const timetableBody = document.getElementById('timetableBody');
+        const editModal = document.getElementById('editModal');
+        const editClose = document.getElementById('editClose');
+        const editTitle = document.getElementById('editTitle');
+        const editSubject = document.getElementById('editSubject');
+        const editBox = document.getElementById('editBox');
+        const btnMiss = document.getElementById('btnMiss');
+        const btnHoliday = document.getElementById('btnHoliday');
+        const editConfirm = document.getElementById('editConfirm');
+        const editDelete = document.getElementById('editDelete');
+        const deleteCounter = document.getElementById('deleteCounter');
+        const editMsg = document.getElementById('editMsg');
+        const successToast = document.getElementById('successToast');
+        const successText = document.getElementById('successText');
         const timeDisplay = document.getElementById('time');
 
-        // Update time
+        // Get today's index in Hong Kong timezone (GMT+8)
+        function getHKToday() {
+            const now = new Date();
+            const hkTime = new Date(now.getTime() + (8 * 60 * 60 * 1000) - (now.getTimezoneOffset() * 60 * 1000));
+            return hkTime.getDay();
+        }
+
+        // Update time display (GMT+8)
         function updateTime() {
             const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const seconds = String(now.getSeconds()).padStart(2, '0');
-            timeDisplay.innerText = `Time now: ${year}/${month}/${day} ${hours}:${minutes}:${seconds}`;
+            const hkTime = new Date(now.getTime() + (8 * 60 * 60 * 1000) - (now.getTimezoneOffset() * 60 * 1000));
+            const year = hkTime.getFullYear();
+            const month = String(hkTime.getMonth() + 1).padStart(2, '0');
+            const day = String(hkTime.getDate()).padStart(2, '0');
+            const hours = String(hkTime.getHours()).padStart(2, '0');
+            const minutes = String(hkTime.getMinutes()).padStart(2, '0');
+            const seconds = String(hkTime.getSeconds()).padStart(2, '0');
+            timeDisplay.innerText = `${year}/${month}/${day} ${hours}:${minutes}:${seconds}`;
         }
         updateTime();
         setInterval(updateTime, 1000);
 
-        // Open modal when clicking anywhere on the page (except when clicking inside the modal)
-        mainCard.onclick = () => {
-            modal.classList.add('active');
-            box.focus();
-        };
+        // Generate unique ID for a subject
+        function getSubjectId(dayIndex, period) {
+            return `day_${dayIndex}_period_${period}`;
+        }
 
-        // Close modal
-        closeBtn.onclick = () => {
-            modal.classList.remove('active');
-        };
-
-        // Close modal when clicking outside
-        modal.onclick = (e) => {
-            if (e.target === modal) {
-                modal.classList.remove('active');
-            }
-        };
-
-        // Close modal on Escape key
-        document.onkeydown = (e) => {
-            if (e.key === 'Escape') {
-                modal.classList.remove('active');
-            }
-        };
-
-        // Submit functionality
-        btn.onclick = async () => {
-            const content = box.value.trim();
-            if(!content) return;
-
-            msg.innerText = "📡 Uplinking...";
-            btn.disabled = true;
-            btn.classList.add('opacity-50');
-            
+        // Get data from Supabase
+        async function loadData() {
+            const data = {};
             try {
-                const res = await fetch(`${URL}/rest/v1/logs`, {
-                    method: 'POST',
+                const res = await fetch(`${URL}/rest/v1/logs?select=*`, {
                     headers: {
                         'apikey': KEY,
-                        'Authorization': `Bearer ${KEY}`,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=minimal'
-                    },
-                    body: JSON.stringify({ content: content })
+                        'Authorization': `Bearer ${KEY}`
+                    }
                 });
-
-                if(res.ok) {
-                    msg.innerText = "✨ Successfully synced to cloud";
-                    box.value = "";
-                    if(navigator.vibrate) navigator.vibrate(50);
-                    
-                    // Close modal after success
-                    setTimeout(() => {
-                        modal.classList.remove('active');
-                        msg.innerText = "";
-                    }, 1500);
-                } else {
-                    const err = await res.json();
-                    msg.innerText = "❌ Error: " + (err.message || "Unknown");
-                    console.error(err);
-                }
+                const records = await res.json();
+                records.forEach(record => {
+                    data[record.id] = record;
+                });
             } catch (e) {
-                msg.innerText = "❌ Connection Failed";
-            } finally {
-                btn.disabled = false;
-                btn.classList.remove('opacity-50');
-                setTimeout(() => { if(msg.innerText.includes('Successfully')) msg.innerText = ""; }, 3000);
+                console.error('Failed to load data:', e);
+            }
+            return data;
+        }
+
+        // Save data to Supabase
+        async function saveData(subjectId, content, dayIndex, period, status) {
+            const res = await fetch(`${URL}/rest/v1/logs`, {
+                method: 'POST',
+                headers: {
+                    'apikey': KEY,
+                    'Authorization': `Bearer ${KEY}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify({
+                    id: subjectId,
+                    content: content,
+                    day_index: dayIndex,
+                    period: period,
+                    status: status
+                })
+            });
+            return res.ok;
+        }
+
+        // Delete data from Supabase
+        async function deleteData(subjectId) {
+            const res = await fetch(`${URL}/rest/v1/logs?id=eq.${subjectId}`, {
+                method: 'DELETE',
+                headers: {
+                    'apikey': KEY,
+                    'Authorization': `Bearer ${KEY}`
+                }
+            });
+            return res.ok;
+        }
+
+        // Render the timetable
+        async function renderTimetable() {
+            const data = await loadData();
+            timetableBody.innerHTML = '';
+
+            const dayNames = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
+            const dayNamesZH = ['星期一', '星期二', '星期三', '星期四', '星期五'];
+
+            // Combine and sort all rows by start time
+            const allRows = [];
+            
+            // Add merged break rows (apply to all days)
+            specialRows.forEach(row => {
+                const startTime = row.time.split('-')[0];
+                allRows.push({
+                    type: 'break',
+                    time: row.time,
+                    label: row.label,
+                    merged: true,
+                    days: [1, 2, 3, 4, 5],
+                    startTime: parseTime(startTime)
+                });
+            });
+
+            // Add period rows
+            timePeriods.forEach(period => {
+                const startTime = period.time.split('-')[0];
+                allRows.push({
+                    type: 'period',
+                    time: period.time,
+                    period: period.period,
+                    subjects: period.subjects,
+                    startTime: parseTime(startTime)
+                });
+            });
+
+            // Sort by start time
+            allRows.sort((a, b) => a.startTime - b.startTime);
+
+            // Render all rows
+            allRows.forEach(row => {
+                if (row.type === 'break' && row.merged) {
+                    // Render merged break row
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="p-2 text-left text-white text-xs opacity-60">${row.time}</td>
+                        <td colspan="5" class="p-2 text-center text-white text-sm font-light opacity-50">${row.label}</td>
+                    `;
+                    timetableBody.appendChild(tr);
+                } else if (row.type === 'break' && !row.merged) {
+                    // Render day-specific break row
+                    const tr = document.createElement('tr');
+                    let cellsHTML = '';
+                    
+                    for (let dayIndex = 1; dayIndex <= 5; dayIndex++) {
+                        if (row.days.includes(dayIndex)) {
+                            cellsHTML += `<td class="p-2 text-center text-white text-sm font-light opacity-50 border border-gray-700/50 rounded-lg">${row.label}</td>`;
+                        } else {
+                            cellsHTML += `<td class="p-2 border border-transparent"></td>`;
+                        }
+                    }
+                    
+                    tr.innerHTML = `
+                        <td class="p-2 text-left text-white text-xs opacity-60">${row.time}</td>
+                        ${cellsHTML}
+                    `;
+                    timetableBody.appendChild(tr);
+                } else {
+                    // Render period row
+                    const tr = document.createElement('tr');
+                    
+                    // Time column
+                    const timeTd = document.createElement('td');
+                    timeTd.className = 'p-2 text-left text-white text-xs whitespace-nowrap';
+                    timeTd.innerHTML = `${row.time}<br><span class="text-white opacity-50 text-xs">第${row.period}節</span>`;
+                    tr.appendChild(timeTd);
+
+                    // Day columns (1-5 = Mon-Fri)
+                    for (let dayIndex = 1; dayIndex <= 5; dayIndex++) {
+                        const subjectName = row.subjects[dayIndex - 1];
+                        
+                        // Check if this is the 余暇活動 cell that should span (Wednesday, period 8)
+                        const isWednesday = dayIndex === 3;
+                        const isLeisureCell = subjectName === '餘暇活動';
+                        const isPeriod8 = row.period === 8;
+                        const shouldMerge = isWednesday && isLeisureCell && isPeriod8;
+                        
+                        // Skip if this cell should be merged (period 9 Wednesday)
+                        if (isWednesday && row.period === 9 && subjectName === '餘暇活動') {
+                            continue;
+                        }
+                        
+                        const subjectId = getSubjectId(dayIndex, row.period);
+                        const record = data[subjectId];
+                        const hasContent = record && record.content && record.content.trim();
+                        const status = record?.status || '';
+                        const isToday = dayIndex === currentDay;
+                        
+                        const cell = document.createElement('td');
+                        cell.className = `p-1 timetable-cell border border-gray-700/50 rounded-lg ${isToday ? 'today' : ''}`;
+                        if (shouldMerge) {
+                            cell.setAttribute('rowspan', '2');
+                        }
+                        
+                        // Check if unclickable (---)
+                        const isUnclickable = subjectName === '---';
+                        
+                        let statusClass = 'subject-gray';
+                        let statusText = '○';
+                        
+                        if (!isUnclickable) {
+                            if (status === 'miss') {
+                                statusClass = 'text-red-400';
+                                statusText = 'MISS';
+                            } else if (status === 'holiday') {
+                                statusClass = 'text-green-400';
+                                statusText = 'HOLIDAY';
+                            } else if (hasContent) {
+                                statusClass = 'subject-green';
+                                statusText = '✓';
+                            }
+                        }
+
+                        if (isUnclickable) {
+                            cell.innerHTML = `
+                                <div class="text-center p-1 opacity-30">
+                                    <div class="text-sm text-white">${subjectName}</div>
+                                </div>
+                            `;
+                        } else {
+                            cell.innerHTML = `
+                                <div class="text-center p-1 cursor-pointer hover:bg-white/10 rounded-lg transition-all"
+                                     onclick="openEditModal(${dayIndex}, ${row.period}, '${subjectName}')">
+                                    <div class="text-sm ${statusClass}">${subjectName}</div>
+                                    <div class="text-xs ${statusClass} mt-1">${statusText}</div>
+                                </div>
+                            `;
+                        }
+                        tr.appendChild(cell);
+                    }
+
+                    timetableBody.appendChild(tr);
+                }
+            });
+        }
+
+        // Helper function to parse time string to minutes
+        function parseTime(timeStr) {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return hours * 60 + minutes;
+        }
+
+        // Open edit modal
+        window.openEditModal = async function(dayIndex, period, subjectName) {
+            const dayNames = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
+            const dayNamesZH = ['星期一', '星期二', '星期三', '星期四', '星期五'];
+            
+            editingSubject = { dayIndex, period, subjectName };
+            deleteClicks = 0;
+            currentStatus = '';
+            
+            const data = await loadData();
+            const subjectId = getSubjectId(dayIndex, period);
+            const record = data[subjectId];
+            const hasContent = record && record.content && record.content.trim();
+
+            editTitle.textContent = subjectName;
+            editSubject.textContent = `${dayNamesZH[dayIndex - 1]} (${dayNames[dayIndex - 1]}) - 第 ${period} 節`;
+            editBox.value = hasContent ? record.content : '';
+            
+            // Set status
+            currentStatus = record?.status || '';
+            updateStatusButtons();
+
+            // Show/hide delete button based on content
+            if (hasContent || currentStatus) {
+                editDelete.classList.remove('hidden');
+                deleteCounter.classList.add('hidden');
+            } else {
+                editDelete.classList.add('hidden');
+                deleteCounter.classList.add('hidden');
+            }
+            
+            editMsg.innerText = '';
+            editModal.classList.remove('hidden-element');
+            editModal.classList.add('visible-element');
+            editBox.focus();
+        };
+
+        // Update status buttons appearance
+        function updateStatusButtons() {
+            if (currentStatus === 'miss') {
+                btnMiss.className = 'flex-1 py-2 rounded-xl border border-red-500 bg-red-500/20 text-red-400 transition-all text-sm font-bold';
+                btnHoliday.className = 'flex-1 py-2 rounded-xl border border-gray-700 bg-gray-800/50 text-gray-500 transition-all text-sm font-bold';
+            } else if (currentStatus === 'holiday') {
+                btnMiss.className = 'flex-1 py-2 rounded-xl border border-gray-700 bg-gray-800/50 text-gray-500 transition-all text-sm font-bold';
+                btnHoliday.className = 'flex-1 py-2 rounded-xl border border-green-500 bg-green-500/20 text-green-400 transition-all text-sm font-bold';
+            } else {
+                btnMiss.className = 'flex-1 py-2 rounded-xl border border-gray-700 bg-gray-800/50 text-gray-400 transition-all text-sm font-bold';
+                btnHoliday.className = 'flex-1 py-2 rounded-xl border border-gray-700 bg-gray-800/50 text-gray-400 transition-all text-sm font-bold';
             }
         }
+
+        // Status button handlers
+        btnMiss.onclick = () => {
+            currentStatus = currentStatus === 'miss' ? '' : 'miss';
+            updateStatusButtons();
+        };
+
+        btnHoliday.onclick = () => {
+            currentStatus = currentStatus === 'holiday' ? '' : 'holiday';
+            updateStatusButtons();
+        };
+
+        // Close edit modal
+        function closeEditModal() {
+            editModal.classList.remove('visible-element');
+            editModal.classList.add('hidden-element');
+            editingSubject = null;
+            deleteClicks = 0;
+        }
+
+        editClose.onclick = closeEditModal;
+
+        // Close modal on outside click
+        editModal.onclick = (e) => {
+            if (e.target === editModal) closeEditModal();
+        };
+
+        // Close modal on Escape
+        document.onkeydown = (e) => {
+            if (e.key === 'Escape') closeEditModal();
+        };
+
+        // Confirm / Submit
+        editConfirm.onclick = async () => {
+            const content = editBox.value.trim();
+            const { dayIndex, period, subjectName } = editingSubject;
+            const subjectId = getSubjectId(dayIndex, period);
+
+            if (!content && !currentStatus) {
+                editMsg.innerText = "請輸入內容或選擇 MISS/HOLIDAY";
+                return;
+            }
+
+            editConfirm.disabled = true;
+            editConfirm.classList.add('opacity-50');
+            editMsg.innerText = "📡 Uplinking...";
+
+            try {
+                const success = await saveData(subjectId, content, dayIndex, period, currentStatus);
+                if (success) {
+                    editMsg.innerText = "✨ SUCCESS";
+                    editConfirm.disabled = false;
+                    editConfirm.classList.remove('opacity-50');
+                    
+                    // Show success toast
+                    successText.textContent = 'SUCCESS';
+                    successToast.classList.remove('hidden-element');
+                    successToast.classList.add('visible-element');
+                    
+                    // Close modal and refresh
+                    setTimeout(() => {
+                        closeEditModal();
+                        successToast.classList.remove('visible-element');
+                        successToast.classList.add('hidden-element');
+                        renderTimetable();
+                    }, 1000);
+                } else {
+                    editMsg.innerText = "❌ Error";
+                    editConfirm.disabled = false;
+                    editConfirm.classList.remove('opacity-50');
+                }
+            } catch (e) {
+                editMsg.innerText = "❌ Connection Failed";
+                editConfirm.disabled = false;
+                editConfirm.classList.remove('opacity-50');
+            }
+        };
+
+        // Delete button click
+        editDelete.onclick = () => {
+            deleteClicks++;
+            deleteCounter.classList.remove('hidden');
+            deleteCounter.textContent = `Click ${deleteClicks}/3 to delete`;
+            editDelete.classList.add('delete-pulse');
+            
+            setTimeout(() => editDelete.classList.remove('delete-pulse'), 500);
+
+            if (deleteClicks >= 3) {
+                deleteSubject();
+            }
+        };
+
+        // Delete subject
+        async function deleteSubject() {
+            const { dayIndex, period } = editingSubject;
+            const subjectId = getSubjectId(dayIndex, period);
+            
+            editDelete.disabled = true;
+            editDelete.classList.add('opacity-50');
+            editMsg.innerText = "🗑️ Deleting...";
+
+            try {
+                const success = await deleteData(subjectId);
+                if (success) {
+                    editMsg.innerText = "✨ DELETED";
+                    
+                    // Show success toast
+                    successText.textContent = 'DELETED';
+                    successToast.classList.remove('hidden-element');
+                    successToast.classList.add('visible-element');
+                    
+                    // Close modal and refresh
+                    setTimeout(() => {
+                        closeEditModal();
+                        successText.textContent = 'SUCCESS';
+                        successToast.classList.remove('visible-element');
+                        successToast.classList.add('hidden-element');
+                        renderTimetable();
+                    }, 1000);
+                } else {
+                    editMsg.innerText = "❌ Delete Failed";
+                    deleteClicks = 0;
+                    deleteCounter.classList.add('hidden');
+                    editDelete.disabled = false;
+                    editDelete.classList.remove('opacity-50');
+                }
+            } catch (e) {
+                editMsg.innerText = "❌ Error";
+                deleteClicks = 0;
+                deleteCounter.classList.add('hidden');
+                editDelete.disabled = false;
+                editDelete.classList.remove('opacity-50');
+            }
+        }
+
+        // Click anywhere to show timetable
+        document.body.onclick = (e) => {
+            if (e.target.closest('#editModal')) return;
+            if (e.target.closest('.timetable-cell')) return;
+            
+            if (!mainContent.classList.contains('visible-element')) {
+                logoContainer.classList.add('fade-out');
+                setTimeout(() => {
+                    logoContainer.classList.add('hidden-element');
+                    mainContent.classList.remove('hidden-element');
+                    mainContent.classList.add('visible-element');
+                }, 300);
+            }
+        };
+
+        // Initial render
+        renderTimetable();
     </script>
 </body>
 </html>
