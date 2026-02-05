@@ -1,838 +1,963 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRLogger Pro 📝</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body {
-            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
-            background-image: url('https://raw.githubusercontent.com/x8lua/CRlogger/main/assets/bg.jpg');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-            background-blend-mode: overlay;
-            background-color: rgba(15, 23, 42, 0.5);
-        }
-        .glass {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        .pulse-glow {
-            animation: pulse-glow 2s ease-in-out infinite;
-        }
-        @keyframes pulse-glow {
-            0%, 100% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.5); }
-            50% { box-shadow: 0 0 60px rgba(59, 130, 246, 0.8); }
-        }
-        .fade-out {
-            opacity: 0;
-            transform: translateY(-20px) scale(0.9);
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .visible-element {
-            opacity: 1;
-            pointer-events: auto;
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .hidden-element {
-            opacity: 0;
-            pointer-events: none;
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .timetable-cell {
-            transition: all 0.2s ease;
-        }
-        .timetable-cell:hover {
-            transform: scale(1.02);
-        }
-        .timetable-cell.today {
-            border-color: rgba(59, 130, 246, 0.8);
-            box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
-        }
-        .subject-gray {
-            color: #ffffff;
-            opacity: 0.5;
-        }
-        .subject-gray:hover {
-            opacity: 0.8;
-        }
-        .subject-green {
-            color: #22c55e;
-        }
-        .delete-pulse {
-            animation: delete-pulse 0.5s ease-in-out;
-        }
-        @keyframes delete-pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-        .table-scroll {
-            overflow-x: auto;
-        }
-    </style>
-</head>
-<body class="min-h-screen flex flex-col items-center justify-center p-4 text-white font-sans" id="page">
+    <!DOCTYPE html>
+    <html lang="zh-Hant">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="mobile-web-app-capable" content="yes">
+        <title>CRLogger Pro 📝</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+            body {
+                background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+                background-image: url('https://raw.githubusercontent.com/x8lua/CRlogger/main/assets/bg.jpg');
+                background-size: cover;
+                background-position: center;
+                background-attachment: fixed;
+                background-blend-mode: overlay;
+                background-color: rgba(15, 23, 42, 0.5);
+                -webkit-tap-highlight-color: transparent;
+                touch-action: manipulation;
+            }
+            .glass {
+                background: rgba(255, 255, 255, 0.05);
+                backdrop-filter: blur(8px);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+            }
+            .pulse-glow {
+                animation: pulse-glow 2s ease-in-out infinite;
+            }
+            @keyframes pulse-glow {
+                0%, 100% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.5); }
+                50% { box-shadow: 0 0 60px rgba(59, 130, 246, 0.8); }
+            }
+            .fade-out {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.9);
+                transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            .visible-element {
+                opacity: 1;
+                pointer-events: auto;
+                transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            .hidden-element {
+                opacity: 0;
+                pointer-events: none;
+                transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            .timetable-cell {
+                transition: all 0.2s ease;
+            }
+            .timetable-cell:hover {
+                transform: scale(1.02);
+            }
+            .timetable-cell.today {
+                border-color: rgba(59, 130, 246, 0.8);
+                box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+            }
+            .subject-gray {
+                color: #ffffff;
+                opacity: 0.5;
+            }
+            .subject-gray:hover {
+                opacity: 0.8;
+            }
+            .subject-green {
+                color: #22c55e;
+            }
+            .delete-pulse {
+                animation: delete-pulse 0.5s ease-in-out;
+            }
+            @keyframes delete-pulse {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.1); }
+            }
+            .table-scroll {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            /* Mobile-optimized tap targets */
+            @media (max-width: 640px) {
+                button {
+                    min-height: 44px;
+                    min-width: 44px;
+                }
+                .timetable-cell {
+                    min-height: 60px;
+                }
+            }
+            /* Prevent text selection on mobile */
+            .no-select {
+                -webkit-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;
+            }
+            /* Smooth touch interactions */
+            .touch-optimized {
+                touch-action: manipulation;
+                -webkit-tap-highlight-color: transparent;
+            }
+        </style>
+    </head>
+    <body class="min-h-screen flex flex-col items-center justify-center p-2 sm:p-4 text-white font-sans no-select" id="page">
 
-    <!-- Logo Area - Middle Top -->
-    <div class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center z-10" id="logoContainer">
-        <img src="https://raw.githubusercontent.com/x8lua/CRlogger/main/assets/logo.png" alt="CRLogger Pro Logo" class="h-32 w-auto drop-shadow-2xl pulse-glow">
-        <p class="text-xl font-mono tracking-widest text-blue-400 mt-4" id="time"></p>
-    </div>
+        <!-- Logo Area - Middle Top -->
+        <div class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center z-10" id="logoContainer">
+            <img src="https://raw.githubusercontent.com/x8lua/CRlogger/main/assets/logo.png" alt="CRLogger Pro Logo" class="h-40 sm:h-55 md:h-60 w-auto drop-shadow-2xl pulse-glow">
+            <p class="text-base sm:text-xl font-mono tracking-widest text-blue-400 mt-2 sm:mt-4" id="time"></p>
+        </div>
 
-    <!-- Main Content - Hidden initially -->
-    <div class="hidden-element w-full max-w-7xl mt-32" id="mainContent">
-        <!-- Week Navigation -->
-        <div class="glass rounded-2xl p-3 mb-4 flex items-center justify-between">
-            <button id="prevWeek" class="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-xl text-white font-bold transition-all">
-                ◀ 上一週
-            </button>
-            <div class="text-center">
-                <h2 id="weekLabel" class="text-lg font-bold text-blue-400">Current Week</h2>
-                <p id="weekDates" class="text-sm text-gray-400 mt-1">Feb 3 - Feb 9, 2026</p>
+        <!-- Main Content - Hidden initially -->
+        <div class="hidden-element w-full max-w-7xl mt-24 sm:mt-28 md:mt-32 px-1 sm:px-2" id="mainContent">
+            <!-- Week Navigation -->
+            <div class="glass rounded-xl sm:rounded-2xl p-2 sm:p-3 mb-3 sm:mb-4 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-4">
+                <div class="flex gap-2 w-full sm:w-auto">
+                    <button id="prevWeek" class="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg sm:rounded-xl text-white font-bold transition-all touch-optimized text-sm sm:text-base">
+                        ◀ <span class="hidden xs:inline">上一週</span><span class="xs:hidden">上週</span>
+                    </button>
+                    <button id="nextWeek" class="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-lg sm:rounded-xl text-white font-bold transition-all touch-optimized text-sm sm:text-base">
+                        <span class="hidden xs:inline">下一週</span> ▶
+                    </button>
+                </div>
+                <div class="text-center">
+                    <h2 id="weekLabel" class="text-base sm:text-lg font-bold text-blue-400">本周</h2>
+                    <p id="weekDates" class="text-xs sm:text-sm text-gray-400 mt-0.5 sm:mt-1">Feb 3 - Feb 9, 2026</p>
+                </div>
             </div>
-            <button id="nextWeek" class="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-xl text-white font-bold transition-all">
-                下一週 ▶
-            </button>
-        </div>
-
-        <!-- Header -->
-        <div class="glass rounded-2xl p-4 mb-4 text-center">
-            <h1 class="text-2xl font-bold text-white">聖若瑟教區中學第五校（中文部）</h1>
-            <p class="text-white opacity-60 mt-1">2025-2026 學年 高一甲 課表記錄表</p>
-        </div>
-
-        <!-- Timetable -->
-        <div class="glass rounded-2xl p-4 table-scroll">
-            <table class="w-full min-w-[800px] text-sm">
-                <thead>
-                    <tr>
-                        <th class="p-2 text-left text-white opacity-60 w-24">時間</th>
-                        <th class="p-2 text-center text-white w-28">MON<br><span class="text-xs opacity-50">星期一</span></th>
-                        <th class="p-2 text-center text-white w-28">TUE<br><span class="text-xs opacity-50">星期二</span></th>
-                        <th class="p-2 text-center text-white w-28">WED<br><span class="text-xs opacity-50">星期三</span></th>
-                        <th class="p-2 text-center text-white w-28">THU<br><span class="text-xs opacity-50">星期四</span></th>
-                        <th class="p-2 text-center text-white w-28">FRI<br><span class="text-xs opacity-50">星期五</span></th>
-                    </tr>
-                </thead>
-                <tbody id="timetableBody">
-                    <!-- Generated by JavaScript -->
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- Subject Edit Modal -->
-    <div class="hidden-element fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" id="editModal">
-        <div class="glass max-w-md w-full rounded-3xl p-6 shadow-2xl relative" onclick="event.stopPropagation()">
-            <!-- Close Button -->
-            <button id="editClose" class="absolute top-3 right-3 text-gray-400 hover:text-white transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
 
             <!-- Header -->
-            <div class="flex items-center gap-2 mb-4">
-                <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <h2 class="text-lg font-bold text-blue-400" id="editTitle">Subject</h2>
+            <div class="glass rounded-xl sm:rounded-2xl p-3 sm:p-4 mb-3 sm:mb-4 text-center">
+                <h1 class="text-lg sm:text-2xl font-bold text-white">聖若瑟教區中學第五校（中文部）</h1>
+                <p class="text-white opacity-60 mt-1 text-sm sm:text-base">2025-2026 學年 高一甲 課表記錄表</p>
             </div>
 
-            <!-- Subject Info -->
-            <p class="text-gray-400 text-sm mb-4" id="editSubject">Monday - Period 1</p>
-
-            <!-- Text Input -->
-            <textarea id="editBox" 
-                class="glow w-full h-40 bg-gray-900/50 border border-gray-700 rounded-2xl p-4 text-white outline-none transition-all placeholder-gray-600 resize-none"
-                placeholder="喺呢度記錄課堂重點..."></textarea>
-
-            <!-- MISS / HOLIDAY Toggle -->
-            <div class="flex gap-2 mt-4">
-                <button id="btnMiss" class="flex-1 py-2 rounded-xl border transition-all text-sm font-bold">MISS</button>
-                <button id="btnHoliday" class="flex-1 py-2 rounded-xl border transition-all text-sm font-bold">HOLIDAY</button>
+            <!-- Timetable -->
+            <div class="glass rounded-xl sm:rounded-2xl p-2 sm:p-4 table-scroll">
+                <!-- Mobile Day Selector -->
+                <div class="sm:hidden mb-3 flex gap-1 overflow-x-auto pb-2 no-scrollbar">
+                    <button onclick="showDay(1)" class="day-btn flex-1 py-2 px-3 rounded-lg text-sm font-bold bg-blue-600 text-white" data-day="1">MON</button>
+                    <button onclick="showDay(2)" class="day-btn flex-1 py-2 px-3 rounded-lg text-sm font-bold bg-gray-700/50 text-gray-400" data-day="2">TUE</button>
+                    <button onclick="showDay(3)" class="day-btn flex-1 py-2 px-3 rounded-lg text-sm font-bold bg-gray-700/50 text-gray-400" data-day="3">WED</button>
+                    <button onclick="showDay(4)" class="day-btn flex-1 py-2 px-3 rounded-lg text-sm font-bold bg-gray-700/50 text-gray-400" data-day="4">THU</button>
+                    <button onclick="showDay(5)" class="day-btn flex-1 py-2 px-3 rounded-lg text-sm font-bold bg-gray-700/50 text-gray-400" data-day="5">FRI</button>
+                </div>
+                
+                <table class="w-full min-w-[600px] sm:min-w-[700px] md:min-w-[800px] text-xs sm:text-sm">
+                    <thead class="hidden sm:table-header-group">
+                        <tr>
+                            <th class="p-1.5 sm:p-2 text-left text-white opacity-60 w-20 sm:w-24 text-xs">時間</th>
+                            <th class="p-1.5 sm:p-2 text-center text-white w-20 sm:w-28">MON<br><span class="text-xs opacity-50 hidden sm:inline">星期一</span></th>
+                            <th class="p-1.5 sm:p-2 text-center text-white w-20 sm:w-28">TUE<br><span class="text-xs opacity-50 hidden sm:inline">星期二</span></th>
+                            <th class="p-1.5 sm:p-2 text-center text-white w-20 sm:w-28">WED<br><span class="text-xs opacity-50 hidden sm:inline">星期三</span></th>
+                            <th class="p-1.5 sm:p-2 text-center text-white w-20 sm:w-28">THU<br><span class="text-xs opacity-50 hidden sm:inline">星期四</span></th>
+                            <th class="p-1.5 sm:p-2 text-center text-white w-20 sm:w-28">FRI<br><span class="text-xs opacity-50 hidden sm:inline">星期五</span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="timetableBody">
+                        <!-- Generated by JavaScript -->
+                    </tbody>
+                </table>
             </div>
-
-            <!-- Confirm Button -->
-            <button id="editConfirm" 
-                class="mt-4 w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-2xl shadow-lg active:scale-95 transition-all">
-                I Confirm
-            </button>
-
-            <!-- Delete Button -->
-            <button id="editDelete" 
-                class="mt-3 w-full bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-600/50 font-bold py-3 rounded-2xl shadow-lg active:scale-95 transition-all hidden">
-                🗑️ Delete (Click 3 times)
-            </button>
-
-            <!-- Delete Confirm Counter -->
-            <p id="deleteCounter" class="text-center mt-2 text-sm text-gray-500 hidden">Click 0/3 to delete</p>
-
-            <!-- Message -->
-            <p id="editMsg" class="text-center mt-4 text-xs font-mono tracking-widest text-gray-500 uppercase"></p>
         </div>
-    </div>
 
-    <!-- Success Toast -->
-    <div class="hidden-element fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50" id="successToast">
-        <div class="glass px-6 py-3 rounded-full shadow-2xl flex items-center gap-2">
-            <span class="text-green-400">✨</span>
-            <span class="text-white font-bold" id="successText">SUCCESS</span>
+        <!-- Mobile Day View Modal -->
+        <div id="dayViewModal" class="hidden-element fixed inset-0 bg-black/80 backdrop-blur-sm z-50 p-4 overflow-y-auto">
+            <div class="glass rounded-2xl p-4 min-h-[80vh]">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 id="dayViewTitle" class="text-xl font-bold text-blue-400">Monday</h2>
+                    <button onclick="closeDayView()" class="p-2 text-gray-400 hover:text-white touch-optimized">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div id="dayViewContent" class="space-y-2">
+                    <!-- Generated by JavaScript -->
+                </div>
+            </div>
         </div>
-    </div>
 
-    <script type="module">
-        // GitHub Repository Assets URL
-        const GITHUB_REPO = "https://raw.githubusercontent.com/x8lua/CRlogger/main";
-        
-        // Supabase Config
-        const URL = "https://fgcahyuzvvralgvyaspo.supabase.co";
-        const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZnY2FoeXV6dnZyYWxndnlhc3BvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyODQzMjAsImV4cCI6MjA4NTg2MDMyMH0.h0jZ3DYHgqo5J4us-gpmHGdpBgkVmFJG_svPqIBYIZI";
+        <!-- Subject Edit Modal -->
+        <div class="hidden-element fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-2 sm:p-4" id="editModal">
+            <div class="glass max-w-lg w-full rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-2xl relative max-h-[90vh] sm:max-h-[80vh] overflow-y-auto" onclick="event.stopPropagation()">
+                <!-- Close Button -->
+                <button id="editClose" class="absolute top-2 right-2 sm:top-3 sm:right-3 p-2 text-gray-400 hover:text-white transition-colors touch-optimized z-10">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
 
-        // Time periods configuration
-        const timePeriods = [
-            { time: '08:25-09:05', period: 1, subjects: ['經濟', '數學', '英文', '中文', '音樂/美勞'] },
-            { time: '09:10-09:50', period: 2, subjects: ['英文', '自然地理', '英文', '數學', '班主任'] },
-            { time: '10:10-10:50', period: 3, subjects: ['英文', '中文', '中國史', '數學', '英文'] },
-            { time: '10:55-11:35', period: 4, subjects: ['中國史', '中文', '自然科學', '經濟與會計', '資訊'] },
-            { time: '11:40-12:20', period: 5, subjects: ['中文', '英文', '自然科學', '中國史', '資訊'] },
-            { time: '14:00-14:40', period: 6, subjects: ['宗教', '經濟', '數學', '英文', '數學'] },
-            { time: '14:45-15:25', period: 7, subjects: ['宗教', '地理', '中文', '體育', '數學'] },
-            { time: '15:30-16:10', period: 8, subjects: ['附加數學', '歷史', '餘暇活動', '體育', '自然地理'] },
-            { time: '16:15-16:55', period: 9, subjects: ['---', '---', '餘暇活動', '---', '---'] }
-        ];
+                <!-- Header -->
+                <div class="flex items-center gap-2 mb-3 sm:mb-4 pr-8">
+                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <h2 class="text-lg sm:text-xl font-bold text-blue-400" id="editTitle">Subject</h2>
+                </div>
 
-        // Special rows (break/recess)
-        const specialRows = [
-            { time: '08:00-08:25', label: '祈禱/晨禱', merged: true },
-            { time: '09:05-09:10', label: '小息 Break', merged: true },
-            { time: '09:50-10:10', label: '小息 Recess', merged: true },
-            { time: '10:50-10:55', label: '小息 Break', merged: true },
-            { time: '11:35-11:40', label: '小息 Break', merged: true },
-            { time: '12:20-13:50', label: '中午 Lunch', merged: true },
-            { time: '13:50-14:00', label: '午禱', merged: true },
-            { time: '14:40-14:45', label: '小息 Break', merged: true },
-            { time: '15:25-15:30', label: '小息 Break', merged: true }
-        ];
+                <!-- Subject Info -->
+                <p class="text-gray-400 text-sm mb-3 sm:mb-4" id="editSubject">Monday - Period 1</p>
 
-        // Day-specific break rows (for 16:10-16:15)
-        const daySpecificBreaks = [
-            { time: '16:10-16:15', label: '小息 Break', days: [1, 2] },  // Mon-Tue
-            { time: '16:10-16:15', label: '小息 Break', days: [4, 5] }   // Thu-Fri
-        ];
+                <!-- Text Input -->
+                <textarea id="editBox" 
+                    class="w-full h-28 sm:h-40 bg-gray-900/50 border border-gray-700 rounded-xl sm:rounded-2xl p-3 sm:p-4 text-white outline-none transition-all placeholder-gray-600 resize-none text-sm sm:text-base"
+                    placeholder="喺呢度記錄課堂重點..."></textarea>
 
-        // State
-        let editingSubject = null;
-        let deleteClicks = 0;
-        let currentStatus = ''; // '', 'miss', 'holiday'
+                <!-- MISS / HOLIDAY Toggle -->
+                <div class="flex gap-2 mt-3 sm:mt-4">
+                    <button id="btnMiss" class="flex-1 py-2.5 sm:py-3 rounded-xl border transition-all text-sm sm:text-base font-bold touch-optimized">MISS</button>
+                    <button id="btnHoliday" class="flex-1 py-2.5 sm:py-3 rounded-xl border transition-all text-sm sm:text-base font-bold touch-optimized">HOLIDAY</button>
+                </div>
 
-        // DOM Elements
-        const logoContainer = document.getElementById('logoContainer');
-        const mainContent = document.getElementById('mainContent');
-        const timetableBody = document.getElementById('timetableBody');
-        const editModal = document.getElementById('editModal');
-        const editClose = document.getElementById('editClose');
-        const editTitle = document.getElementById('editTitle');
-        const editSubject = document.getElementById('editSubject');
-        const editBox = document.getElementById('editBox');
-        const btnMiss = document.getElementById('btnMiss');
-        const btnHoliday = document.getElementById('btnHoliday');
-        const editConfirm = document.getElementById('editConfirm');
-        const editDelete = document.getElementById('editDelete');
-        const deleteCounter = document.getElementById('deleteCounter');
-        const editMsg = document.getElementById('editMsg');
-        const successToast = document.getElementById('successToast');
-        const successText = document.getElementById('successText');
-        const timeDisplay = document.getElementById('time');
-        const prevWeekBtn = document.getElementById('prevWeek');
-        const nextWeekBtn = document.getElementById('nextWeek');
-        const weekLabel = document.getElementById('weekLabel');
-        const weekDates = document.getElementById('weekDates');
+                <!-- Confirm Button -->
+                <button id="editConfirm" 
+                    class="mt-4 w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 sm:py-4 rounded-xl sm:rounded-2xl shadow-lg active:scale-95 transition-all text-sm sm:text-base touch-optimized">
+                    I Confirm
+                </button>
 
-        // Week navigation state
-        let weekOffset = 0;
+                <!-- Delete Button -->
+                <button id="editDelete" 
+                    class="mt-3 w-full bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-600/50 font-bold py-3 sm:py-4 rounded-xl sm:rounded-2xl shadow-lg active:scale-95 transition-all text-sm sm:text-base touch-optimized hidden">
+                    🗑️ Delete (Click 3 times)
+                </button>
 
-        // Get HK today with week offset
-        function getHKToday() {
-            const now = new Date();
-            const hkTime = new Date(now.getTime() + (8 * 60 * 60 * 1000) - (now.getTimezoneOffset() * 60 * 1000));
-            return hkTime.getDay();
-        }
+                <!-- Delete Confirm Counter -->
+                <p id="deleteCounter" class="text-center mt-2 text-sm text-gray-500 hidden">Click 0/3 to delete</p>
 
-        // Get HK date with week offset
-        function getHKDate() {
-            const now = new Date();
-            const hkTime = new Date(now.getTime() + (8 * 60 * 60 * 1000) - (now.getTimezoneOffset() * 60 * 1000));
-            // Add week offset (7 days per week)
-            hkTime.setDate(hkTime.getDate() + (weekOffset * 7));
-            return hkTime;
-        }
+                <!-- Message -->
+                <p id="editMsg" class="text-center mt-3 sm:mt-4 text-xs sm:text-sm font-mono tracking-widest text-gray-500 uppercase"></p>
+            </div>
+        </div>
 
-        // Get current day index with week offset
-        function getCurrentDayWithOffset() {
-            const hkDate = getHKDate();
-            return hkDate.getDay();
-        }
+        <!-- Success Toast -->
+        <div class="hidden-element fixed bottom-4 sm:bottom-8 left-1/2 transform -translate-x-1/2 z-50 px-4" id="successToast">
+            <div class="glass px-4 sm:px-6 py-2.5 sm:py-3 rounded-full shadow-2xl flex items-center gap-2">
+                <span class="text-green-400 text-lg sm:text-xl">✨</span>
+                <span class="text-white font-bold text-sm sm:text-base" id="successText">SUCCESS</span>
+            </div>
+        </div>
 
-        // Update week label
-        function updateWeekLabel() {
-            const hkDate = getHKDate();
-            const currentDay = hkDate.getDay(); // 0 = Sunday
-
-            // Calculate Monday of the week
-            const monday = new Date(hkDate);
-            monday.setDate(hkDate.getDate() - currentDay + 1);
-
-            // Calculate Sunday of the week
-            const sunday = new Date(hkDate);
-            sunday.setDate(hkDate.getDate() - currentDay + 7);
-
-            const options = { month: 'short', day: 'numeric' };
-            const startStr = monday.toLocaleDateString('en-US', options);
-            const endStr = sunday.toLocaleDateString('en-US', options);
-            const yearStr = sunday.getFullYear();
-
-            if (weekOffset === 0) {
-                weekLabel.textContent = '本周 Current Week';
-            } else if (weekOffset === 1) {
-                weekLabel.textContent = '下一週 Next Week';
-            } else if (weekOffset === -1) {
-                weekLabel.textContent = '上一週 Previous Week';
-            } else if (weekOffset > 0) {
-                weekLabel.textContent = `+${weekOffset} 週`;
-            } else {
-                weekLabel.textContent = `${weekOffset} 週`;
-            }
-
-            weekDates.textContent = `${startStr} - ${endStr}, ${yearStr}`;
-
-            // Update button states
-            prevWeekBtn.disabled = weekOffset <= -52; // Prevent going back too far
-            nextWeekBtn.disabled = weekOffset >= 52;
-            prevWeekBtn.classList.toggle('opacity-50', weekOffset <= -52);
-            nextWeekBtn.classList.toggle('opacity-50', weekOffset >= 52);
-        }
-
-        // Navigate to previous week
-        prevWeekBtn.onclick = () => {
-            weekOffset--;
-            updateWeekLabel();
-            renderTimetable();
-        };
-
-        // Navigate to next week
-        nextWeekBtn.onclick = () => {
-            weekOffset++;
-            updateWeekLabel();
-            renderTimetable();
-        };
-
-        // Update time display (GMT+8)
-        function updateTime() {
-            const now = new Date();
-            const hkTime = new Date(now.getTime() + (8 * 60 * 60 * 1000) - (now.getTimezoneOffset() * 60 * 1000));
-            const year = hkTime.getFullYear();
-            const month = String(hkTime.getMonth() + 1).padStart(2, '0');
-            const day = String(hkTime.getDate()).padStart(2, '0');
-            const hours = String(hkTime.getHours()).padStart(2, '0');
-            const minutes = String(hkTime.getMinutes()).padStart(2, '0');
-            const seconds = String(hkTime.getSeconds()).padStart(2, '0');
-            timeDisplay.innerText = `${year}/${month}/${day} ${hours}:${minutes}:${seconds}`;
-        }
-        updateTime();
-        setInterval(updateTime, 1000);
-
-        // Generate unique ID for a subject (includes week offset)
-        function getSubjectId(dayIndex, period) {
-            return `week_${weekOffset}_day_${dayIndex}_period_${period}`;
-        }
-
-        // Get data from Supabase
-        async function loadData() {
-            const data = {};
-            try {
-                console.log('Loading data from Supabase...');
-                const res = await fetch(`${URL}/rest/v1/logs?select=*`, {
-                    headers: {
-                        'apikey': KEY,
-                        'Authorization': `Bearer ${KEY}`
-                    }
-                });
-                console.log('Load response status:', res.status);
-                const records = await res.json();
-                console.log('Loaded records:', records.length);
-                records.forEach(record => {
-                    // Use session_id as the key
-                    data[record.session_id] = record;
-                });
-            } catch (e) {
-                console.error('Failed to load data:', e);
-                alert(`載入數據失敗: ${e.message}`);
-            }
-            return data;
-        }
-
-        // Save data to Supabase - Simplified (only store content)
-        async function saveData(subjectId, content, dayIndex, period, status) {
-            console.log('Attempting to save:', { subjectId, content, status });
-
-            // Check if content or status is provided
-            if (!content && !status) {
-                console.log('No content or status to save');
-                return true; // Nothing to save, but not an error
-            }
-
-            try {
-                // First try to delete existing record (by session_id)
-                console.log('Deleting existing record...');
-                const deleteRes = await fetch(`${URL}/rest/v1/logs?session_id=eq.${subjectId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'apikey': KEY,
-                        'Authorization': `Bearer ${KEY}`
-                    }
-                });
-                console.log('Delete response status:', deleteRes.status);
-
-                // Prepare data - only store content
-                const saveData = {
-                    session_id: subjectId,
-                    content: content
-                };
-
-                // Add optional fields if they have values
-                if (dayIndex) saveData.day_index = dayIndex;
-                if (period) saveData.period = period;
-                if (status) saveData.status = status;
-
-                console.log('Sending data:', saveData);
-
-                // Then insert new record
-                const res = await fetch(`${URL}/rest/v1/logs`, {
-                    method: 'POST',
-                    headers: {
-                        'apikey': KEY,
-                        'Authorization': `Bearer ${KEY}`,
-                        'Content-Type': 'application/json',
-                        'Prefer': 'return=minimal'
-                    },
-                    body: JSON.stringify(saveData)
-                });
-
-                console.log('POST response status:', res.status);
-
-                if (!res.ok) {
-                    const errorText = await res.text();
-                    console.error('Supabase error:', res.status, res.statusText, errorText);
-                    alert(`儲存失敗 (${res.status}): ${errorText}`);
-                    return false;
-                }
-                return true;
-            } catch (e) {
-                console.error('Connection error:', e);
-                alert(`連接錯誤: ${e.message}`);
-                return false;
-            }
-        }
-
-        // Delete data from Supabase
-        async function deleteData(subjectId) {
-            try {
-                console.log('Deleting:', subjectId);
-                const res = await fetch(`${URL}/rest/v1/logs?session_id=eq.${subjectId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'apikey': KEY,
-                        'Authorization': `Bearer ${KEY}`
-                    }
-                });
-
-                console.log('Delete response:', res.status);
-                if (!res.ok && res.status !== 404) { // 404 is OK - record doesn't exist
-                    const errorText = await res.text();
-                    console.error('Supabase delete error:', res.status, errorText);
-                    return false;
-                }
-                return true;
-            } catch (e) {
-                console.error('Delete connection error:', e);
-                return false;
-            }
-        }
-
-        // Render the timetable
-        async function renderTimetable() {
-            const data = await loadData();
-            timetableBody.innerHTML = '';
-
-            const dayNames = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
-            const dayNamesZH = ['星期一', '星期二', '星期三', '星期四', '星期五'];
-
-            // Combine and sort all rows by start time
-            const allRows = [];
+        <script type="module">
+            // GitHub Repository Assets URL
+            const GITHUB_REPO = "https://raw.githubusercontent.com/x8lua/CRlogger/main";
             
-            // Add day-specific break rows (Mon-Tue and Thu-Fri only)
-            daySpecificBreaks.forEach(row => {
-                const startTime = row.time.split('-')[0];
-                allRows.push({
-                    type: 'break',
-                    time: row.time,
-                    label: row.label,
-                    merged: false,
-                    days: row.days,
-                    startTime: parseTime(startTime)
-                });
-            });
-            // Add merged break rows (apply to all days - Mon to Fri)
-            specialRows.forEach(row => {
-                const startTime = row.time.split('-')[0];
-                allRows.push({
-                    type: 'break',
-                    time: row.time,
-                    label: row.label,
-                    merged: true,
-                    days: [1, 2, 3, 4, 5],
-                    startTime: parseTime(startTime)
-                });
-            });
+            // Supabase Config
+            const URL = "https://fgcahyuzvvralgvyaspo.supabase.co";
+            const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZnY2FoeXV6dnZyYWxndnlhc3BvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyODQzMjAsImV4cCI6MjA4NTg2MDMyMH0.h0jZ3DYHgqo5J4us-gpmHGdpBgkVmFJG_svPqIBYIZI";
 
-            // Add period rows
-            timePeriods.forEach(period => {
-                const startTime = period.time.split('-')[0];
-                allRows.push({
-                    type: 'period',
-                    time: period.time,
-                    period: period.period,
-                    subjects: period.subjects,
-                    startTime: parseTime(startTime)
-                });
-            });
+            // Time periods configuration
+            const timePeriods = [
+                { time: '08:25-09:05', period: 1, subjects: ['經濟', '數學', '英文', '中文', '音樂/美勞'] },
+                { time: '09:10-09:50', period: 2, subjects: ['英文', '自然地理', '英文', '數學', '班主任'] },
+                { time: '10:10-10:50', period: 3, subjects: ['英文', '中文', '中國史', '數學', '英文'] },
+                { time: '10:55-11:35', period: 4, subjects: ['中國史', '中文', '自然科學', '經濟與會計', '資訊'] },
+                { time: '11:40-12:20', period: 5, subjects: ['中文', '英文', '自然科學', '中國史', '資訊'] },
+                { time: '14:00-14:40', period: 6, subjects: ['宗教', '經濟', '數學', '英文', '數學'] },
+                { time: '14:45-15:25', period: 7, subjects: ['宗教', '地理', '中文', '體育', '數學'] },
+                { time: '15:30-16:10', period: 8, subjects: ['附加數學', '歷史', '餘暇活動', '體育', '自然地理'] },
+                { time: '16:15-16:55', period: 9, subjects: ['---', '---', '餘暇活動', '---', '---'] }
+            ];
 
-            // Sort by start time
-            allRows.sort((a, b) => a.startTime - b.startTime);
+            // Special rows (break/recess)
+            const specialRows = [
+                { time: '08:00-08:25', label: '祈禱/晨禱', merged: true },
+                { time: '09:05-09:10', label: '小息', merged: true },
+                { time: '09:50-10:10', label: '小息', merged: true },
+                { time: '10:50-10:55', label: '小息', merged: true },
+                { time: '11:35-11:40', label: '小息', merged: true },
+                { time: '12:20-13:50', label: '中午 Lunch', merged: true },
+                { time: '13:50-14:00', label: '午禱', merged: true },
+                { time: '14:40-14:45', label: '小息', merged: true },
+                { time: '15:25-15:30', label: '小息', merged: true }
+            ];
 
-            // Render all rows
-            allRows.forEach(row => {
-                if (row.type === 'break' && row.merged) {
-                    // Render merged break row
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td class="p-2 text-left text-white text-xs opacity-60">${row.time}</td>
-                        <td colspan="5" class="p-2 text-center text-white text-sm font-light opacity-50">${row.label}</td>
-                    `;
-                    timetableBody.appendChild(tr);
-                } else if (row.type === 'break' && !row.merged) {
-                    // Render day-specific break row
-                    const tr = document.createElement('tr');
-                    let cellsHTML = '';
-                    
-                    for (let dayIndex = 1; dayIndex <= 5; dayIndex++) {
-                        if (row.days.includes(dayIndex)) {
-                            cellsHTML += `<td class="p-2 text-center text-white text-sm font-light opacity-50 border border-gray-700/50 rounded-lg">${row.label}</td>`;
-                        } else {
-                            cellsHTML += `<td class="p-2 border border-transparent"></td>`;
-                        }
-                    }
-                    
-                    tr.innerHTML = `
-                        <td class="p-2 text-left text-white text-xs opacity-60">${row.time}</td>
-                        ${cellsHTML}
-                    `;
-                    timetableBody.appendChild(tr);
+            // Day-specific break rows (for 16:10-16:15)
+            const daySpecificBreaks = [
+                { time: '16:10-16:15', label: '小息', days: [1, 2] },  // Mon-Tue
+                { time: '16:10-16:15', label: '小息', days: [4, 5] }   // Thu-Fri
+            ];
+
+            // State
+            let editingSubject = null;
+            let deleteClicks = 0;
+            let currentStatus = '';
+            let currentMobileDay = null;
+            let cachedData = {};
+
+            // DOM Elements
+            const logoContainer = document.getElementById('logoContainer');
+            const mainContent = document.getElementById('mainContent');
+            const timetableBody = document.getElementById('timetableBody');
+            const editModal = document.getElementById('editModal');
+            const editClose = document.getElementById('editClose');
+            const editTitle = document.getElementById('editTitle');
+            const editSubject = document.getElementById('editSubject');
+            const editBox = document.getElementById('editBox');
+            const btnMiss = document.getElementById('btnMiss');
+            const btnHoliday = document.getElementById('btnHoliday');
+            const editConfirm = document.getElementById('editConfirm');
+            const editDelete = document.getElementById('editDelete');
+            const deleteCounter = document.getElementById('deleteCounter');
+            const editMsg = document.getElementById('editMsg');
+            const successToast = document.getElementById('successToast');
+            const successText = document.getElementById('successText');
+            const timeDisplay = document.getElementById('time');
+            const prevWeekBtn = document.getElementById('prevWeek');
+            const nextWeekBtn = document.getElementById('nextWeek');
+            const weekLabel = document.getElementById('weekLabel');
+            const weekDates = document.getElementById('weekDates');
+            const dayViewModal = document.getElementById('dayViewModal');
+            const dayViewTitle = document.getElementById('dayViewTitle');
+            const dayViewContent = document.getElementById('dayViewContent');
+
+            // Week navigation state
+            let weekOffset = 0;
+
+            // Check if mobile view
+            function isMobile() {
+                return window.innerWidth < 640;
+            }
+
+            // Get HK today with week offset
+            function getHKToday() {
+                const now = new Date();
+                const hkTime = new Date(now.getTime() + (8 * 60 * 60 * 1000) - (now.getTimezoneOffset() * 60 * 1000));
+                return hkTime.getDay();
+            }
+
+            // Get HK date with week offset
+            function getHKDate() {
+                const now = new Date();
+                const hkTime = new Date(now.getTime() + (8 * 60 * 60 * 1000) - (now.getTimezoneOffset() * 60 * 1000));
+                hkTime.setDate(hkTime.getDate() + (weekOffset * 7));
+                return hkTime;
+            }
+
+            // Get current day index with week offset
+            function getCurrentDayWithOffset() {
+                const hkDate = getHKDate();
+                return hkDate.getDay();
+            }
+
+            // Update week label
+            function updateWeekLabel() {
+                const hkDate = getHKDate();
+                const currentDay = hkDate.getDay();
+
+                const monday = new Date(hkDate);
+                monday.setDate(hkDate.getDate() - currentDay + 1);
+
+                const sunday = new Date(hkDate);
+                sunday.setDate(hkDate.getDate() - currentDay + 7);
+
+                const options = { month: 'short', day: 'numeric' };
+                const startStr = monday.toLocaleDateString('en-US', options);
+                const endStr = sunday.toLocaleDateString('en-US', options);
+                const yearStr = sunday.getFullYear();
+
+                if (weekOffset === 0) {
+                    weekLabel.textContent = '本周';
+                } else if (weekOffset === 1) {
+                    weekLabel.textContent = '下一週';
+                } else if (weekOffset === -1) {
+                    weekLabel.textContent = '上一週';
+                } else if (weekOffset > 0) {
+                    weekLabel.textContent = `+${weekOffset} 週`;
                 } else {
-                    // Render period row
-                    const tr = document.createElement('tr');
+                    weekLabel.textContent = `${weekOffset} 週`;
+                }
+
+                weekDates.textContent = `${startStr} - ${endStr}, ${yearStr}`;
+
+                prevWeekBtn.disabled = weekOffset <= -52;
+                nextWeekBtn.disabled = weekOffset >= 52;
+                prevWeekBtn.classList.toggle('opacity-50', weekOffset <= -52);
+                nextWeekBtn.classList.toggle('opacity-50', weekOffset >= 52);
+            }
+
+            // Navigate to previous week
+            prevWeekBtn.onclick = () => {
+                weekOffset--;
+                updateWeekLabel();
+                renderTimetable();
+            };
+
+            // Navigate to next week
+            nextWeekBtn.onclick = () => {
+                weekOffset++;
+                updateWeekLabel();
+                renderTimetable();
+            };
+
+            // Update time display (GMT+8)
+            function updateTime() {
+                const now = new Date();
+                const hkTime = new Date(now.getTime() + (8 * 60 * 60 * 1000) - (now.getTimezoneOffset() * 60 * 1000));
+                const year = hkTime.getFullYear();
+                const month = String(hkTime.getMonth() + 1).padStart(2, '0');
+                const day = String(hkTime.getDate()).padStart(2, '0');
+                const hours = String(hkTime.getHours()).padStart(2, '0');
+                const minutes = String(hkTime.getMinutes()).padStart(2, '0');
+                const seconds = String(hkTime.getSeconds()).padStart(2, '0');
+                timeDisplay.innerText = `${year}/${month}/${day} ${hours}:${minutes}:${seconds}`;
+            }
+            updateTime();
+            setInterval(updateTime, 1000);
+
+            // Generate unique ID for a subject
+            function getSubjectId(dayIndex, period) {
+                return `week_${weekOffset}_day_${dayIndex}_period_${period}`;
+            }
+
+            // Get data from Supabase
+            async function loadData() {
+                const data = {};
+                try {
+                    console.log('Loading data from Supabase...');
+                    const res = await fetch(`${URL}/rest/v1/logs?select=*`, {
+                        headers: {
+                            'apikey': KEY,
+                            'Authorization': `Bearer ${KEY}`
+                        }
+                    });
+                    console.log('Load response status:', res.status);
+                    const records = await res.json();
+                    console.log('Loaded records:', records.length);
+                    records.forEach(record => {
+                        data[record.session_id] = record;
+                    });
+                } catch (e) {
+                    console.error('Failed to load data:', e);
+                }
+                return data;
+            }
+
+            // Save data to Supabase
+            async function saveData(subjectId, content, dayIndex, period, status) {
+                console.log('Attempting to save:', { subjectId, content, status });
+
+                if (!content && !status) {
+                    console.log('No content or status to save');
+                    return true;
+                }
+
+                try {
+                    console.log('Deleting existing record...');
+                    const deleteRes = await fetch(`${URL}/rest/v1/logs?session_id=eq.${subjectId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'apikey': KEY,
+                            'Authorization': `Bearer ${KEY}`
+                        }
+                    });
+                    console.log('Delete response status:', deleteRes.status);
+
+                    const saveData = {
+                        session_id: subjectId,
+                        content: content
+                    };
+
+                    if (dayIndex) saveData.day_index = dayIndex;
+                    if (period) saveData.period = period;
+                    if (status) saveData.status = status;
+
+                    console.log('Sending data:', saveData);
+
+                    const res = await fetch(`${URL}/rest/v1/logs`, {
+                        method: 'POST',
+                        headers: {
+                            'apikey': KEY,
+                            'Authorization': `Bearer ${KEY}`,
+                            'Content-Type': 'application/json',
+                            'Prefer': 'return=minimal'
+                        },
+                        body: JSON.stringify(saveData)
+                    });
+
+                    console.log('POST response status:', res.status);
+
+                    if (!res.ok) {
+                        const errorText = await res.text();
+                        console.error('Supabase error:', res.status, res.statusText, errorText);
+                        return false;
+                    }
+                    return true;
+                } catch (e) {
+                    console.error('Connection error:', e);
+                    return false;
+                }
+            }
+
+            // Delete data from Supabase
+            async function deleteData(subjectId) {
+                try {
+                    console.log('Deleting:', subjectId);
+                    const res = await fetch(`${URL}/rest/v1/logs?session_id=eq.${subjectId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'apikey': KEY,
+                            'Authorization': `Bearer ${KEY}`
+                        }
+                    });
+
+                    console.log('Delete response:', res.status);
+                    if (!res.ok && res.status !== 404) {
+                        const errorText = await res.text();
+                        console.error('Supabase delete error:', res.status, errorText);
+                        return false;
+                    }
+                    return true;
+                } catch (e) {
+                    console.error('Delete connection error:', e);
+                    return false;
+                }
+            }
+
+            // Helper function to parse time string to minutes
+            function parseTime(timeStr) {
+                const [hours, minutes] = timeStr.split(':').map(Number);
+                return hours * 60 + minutes;
+            }
+
+            // Show mobile day view
+            function showDay(dayIndex) {
+                const dayNames = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
+                const dayNamesZH = ['星期一', '星期二', '星期三', '星期四', '星期五'];
+                const dayNamesFull = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+                
+                currentMobileDay = dayIndex;
+                dayViewTitle.textContent = `${dayNamesZH[dayIndex - 1]} (${dayNamesFull[dayIndex - 1]})`;
+                
+                // Update day buttons
+                document.querySelectorAll('.day-btn').forEach(btn => {
+                    if (parseInt(btn.dataset.day) === dayIndex) {
+                        btn.classList.remove('bg-gray-700/50', 'text-gray-400');
+                        btn.classList.add('bg-blue-600', 'text-white');
+                    } else {
+                        btn.classList.remove('bg-blue-600', 'text-white');
+                        btn.classList.add('bg-gray-700/50', 'text-gray-400');
+                    }
+                });
+
+                // Generate day content
+                dayViewContent.innerHTML = '';
+                
+                const dayPeriods = timePeriods.filter(p => p.subjects[dayIndex - 1] !== '---');
+                const isToday = dayIndex === getCurrentDayWithOffset();
+
+                dayPeriods.forEach(period => {
+                    const subjectName = period.subjects[dayIndex - 1];
+                    const subjectId = getSubjectId(dayIndex, period.period);
+                    const record = cachedData[subjectId];
+                    const hasContent = record && record.content && record.content.trim();
+                    const status = record?.status || '';
+
+                    let statusClass = 'subject-gray';
+                    let statusText = '○';
                     
-                    // Time column
-                    const timeTd = document.createElement('td');
-                    timeTd.className = 'p-2 text-left text-white text-xs whitespace-nowrap';
-                    timeTd.innerHTML = `${row.time}<br><span class="text-white opacity-50 text-xs">第${row.period}節</span>`;
-                    tr.appendChild(timeTd);
+                    if (status === 'miss') {
+                        statusClass = 'text-red-400';
+                        statusText = 'MISS';
+                    } else if (status === 'holiday') {
+                        statusClass = 'text-green-400';
+                        statusText = 'HOLIDAY';
+                    } else if (hasContent) {
+                        statusClass = 'subject-green';
+                        statusText = '✓';
+                    }
 
-                    // Day columns (1-5 = Mon-Fri)
-                    for (let dayIndex = 1; dayIndex <= 5; dayIndex++) {
-                        const subjectName = row.subjects[dayIndex - 1];
-                        
-                        // Check if this is the 余暇活動 cell that should span (Wednesday, period 8)
-                        const isWednesday = dayIndex === 3;
-                        const isLeisureCell = subjectName === '餘暇活動';
-                        const isPeriod8 = row.period === 8;
-                        const shouldMerge = isWednesday && isLeisureCell && isPeriod8;
-                        
-                        // Skip if this cell should be merged (period 9 Wednesday)
-                        if (isWednesday && row.period === 9 && subjectName === '餘暇活動') {
-                            continue;
-                        }
-                        
-                        const subjectId = getSubjectId(dayIndex, row.period);
-                        const record = data[subjectId];
-                        const hasContent = record && record.content && record.content.trim();
-                        const status = record?.status || '';
-                        const isToday = dayIndex === getCurrentDayWithOffset();
-                        
-                        const cell = document.createElement('td');
-                        cell.className = `p-1 timetable-cell border border-gray-700/50 rounded-lg ${isToday ? 'today' : ''}`;
-                        if (shouldMerge) {
-                            cell.setAttribute('rowspan', '2');
-                        }
-                        
-                        // Check if unclickable (---)
-                        const isUnclickable = subjectName === '---';
+                    const div = document.createElement('div');
+                    div.className = `glass rounded-xl p-3 sm:p-4 touch-optimized ${isToday ? 'today' : ''}`;
+                    div.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="text-xs text-gray-400">${period.time} • 第${period.period}節</div>
+                                <div class="text-lg font-bold ${statusClass} mt-1">${subjectName}</div>
+                                <div class="text-sm ${statusClass} mt-0.5">${statusText}</div>
+                                ${hasContent ? `<div class="text-sm text-gray-300 mt-2 line-clamp-2">${record.content}</div>` : ''}
+                            </div>
+                            <button onclick="openEditModal(${dayIndex}, ${period.period}, '${subjectName}')" 
+                                class="ml-2 px-3 py-1.5 bg-blue-600/30 hover:bg-blue-600/50 rounded-lg text-sm text-blue-400 touch-optimized">
+                                編輯
+                            </button>
+                        </div>
+                    `;
+                    dayViewContent.appendChild(div);
+                });
 
-                        // Debug log for Friday period 9
-                        if (dayIndex === 5 && row.period === 9) {
-                            console.log(`Friday Period 9: subjectName=${subjectName}, isUnclickable=${isUnclickable}`);
-                        }
+                dayViewModal.classList.remove('hidden-element');
+                dayViewModal.classList.add('visible-element');
+            }
 
-                        let statusClass = 'subject-gray';
-                        let statusText = '○';
+            // Close day view modal
+            function closeDayView() {
+                dayViewModal.classList.remove('visible-element');
+                dayViewModal.classList.add('hidden-element');
+                currentMobileDay = null;
+            }
+
+            // Render the timetable
+            async function renderTimetable() {
+                cachedData = await loadData();
+                timetableBody.innerHTML = '';
+
+                const allRows = [];
+                
+                // Add day-specific break rows
+                daySpecificBreaks.forEach(row => {
+                    const startTime = row.time.split('-')[0];
+                    allRows.push({
+                        type: 'break',
+                        time: row.time,
+                        label: row.label,
+                        merged: false,
+                        days: row.days,
+                        startTime: parseTime(startTime)
+                    });
+                });
+                
+                // Add merged break rows
+                specialRows.forEach(row => {
+                    const startTime = row.time.split('-')[0];
+                    allRows.push({
+                        type: 'break',
+                        time: row.time,
+                        label: row.label,
+                        merged: true,
+                        days: [1, 2, 3, 4, 5],
+                        startTime: parseTime(startTime)
+                    });
+                });
+
+                // Add period rows
+                timePeriods.forEach(period => {
+                    const startTime = period.time.split('-')[0];
+                    allRows.push({
+                        type: 'period',
+                        time: period.time,
+                        period: period.period,
+                        subjects: period.subjects,
+                        startTime: parseTime(startTime)
+                    });
+                });
+
+                // Sort by start time
+                allRows.sort((a, b) => a.startTime - b.startTime);
+
+                // Render all rows
+                allRows.forEach(row => {
+                    if (row.type === 'break' && row.merged) {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td class="p-1 sm:p-2 text-left text-white text-xs opacity-60">${row.time}</td>
+                            <td colspan="5" class="p-1 sm:p-2 text-center text-white text-xs sm:text-sm font-light opacity-50">${row.label}</td>
+                        `;
+                        timetableBody.appendChild(tr);
+                    } else if (row.type === 'break' && !row.merged) {
+                        const tr = document.createElement('tr');
+                        let cellsHTML = '';
                         
-                        if (!isUnclickable) {
-                            if (status === 'miss') {
-                                statusClass = 'text-red-400';
-                                statusText = 'MISS';
-                            } else if (status === 'holiday') {
-                                statusClass = 'text-green-400';
-                                statusText = 'HOLIDAY';
-                            } else if (hasContent) {
-                                statusClass = 'subject-green';
-                                statusText = '✓';
+                        for (let dayIndex = 1; dayIndex <= 5; dayIndex++) {
+                            if (row.days.includes(dayIndex)) {
+                                cellsHTML += `<td class="p-1 sm:p-2 text-center text-white text-xs sm:text-sm font-light opacity-50 border border-gray-700/50 rounded-lg">${row.label}</td>`;
+                            } else {
+                                cellsHTML += `<td class="p-1 sm:p-2 border border-transparent"></td>`;
                             }
                         }
+                        
+                        tr.innerHTML = `
+                            <td class="p-1 sm:p-2 text-left text-white text-xs opacity-60">${row.time}</td>
+                            ${cellsHTML}
+                        `;
+                        timetableBody.appendChild(tr);
+                    } else {
+                        const tr = document.createElement('tr');
+                        
+                        // Time column
+                        const timeTd = document.createElement('td');
+                        timeTd.className = 'p-1 sm:p-2 text-left text-white text-xs whitespace-nowrap';
+                        timeTd.innerHTML = `${row.time}<br><span class="text-white opacity-50 text-xs">第${row.period}節</span>`;
+                        tr.appendChild(timeTd);
 
-                        if (isUnclickable) {
-                            cell.innerHTML = `
-                                <div class="text-center p-1 opacity-30">
-                                    <div class="text-sm text-white">${subjectName}</div>
-                                </div>
-                            `;
-                        } else {
-                            cell.innerHTML = `
-                                <div class="text-center p-1 cursor-pointer hover:bg-white/10 rounded-lg transition-all"
-                                     onclick="openEditModal(${dayIndex}, ${row.period}, '${subjectName}')">
-                                    <div class="text-sm ${statusClass}">${subjectName}</div>
-                                    <div class="text-xs ${statusClass} mt-1">${statusText}</div>
-                                </div>
-                            `;
+                        // Day columns (1-5 = Mon-Fri)
+                        for (let dayIndex = 1; dayIndex <= 5; dayIndex++) {
+                            const subjectName = row.subjects[dayIndex - 1];
+                            
+                            const isWednesday = dayIndex === 3;
+                            const isLeisureCell = subjectName === '餘暇活動';
+                            const isPeriod8 = row.period === 8;
+                            const shouldMerge = isWednesday && isLeisureCell && isPeriod8;
+                            
+                            if (isWednesday && row.period === 9 && subjectName === '餘暇活動') {
+                                continue;
+                            }
+                            
+                            const subjectId = getSubjectId(dayIndex, row.period);
+                            const record = cachedData[subjectId];
+                            const hasContent = record && record.content && record.content.trim();
+                            const status = record?.status || '';
+                            const isToday = dayIndex === getCurrentDayWithOffset();
+                            
+                            const cell = document.createElement('td');
+                            cell.className = `p-0.5 sm:p-1 timetable-cell border border-gray-700/50 rounded-lg ${isToday ? 'today' : ''}`;
+                            if (shouldMerge) {
+                                cell.setAttribute('rowspan', '2');
+                            }
+                            
+                            const isUnclickable = subjectName === '---';
+
+                            let statusClass = 'subject-gray';
+                            let statusText = '○';
+                            
+                            if (!isUnclickable) {
+                                if (status === 'miss') {
+                                    statusClass = 'text-red-400';
+                                    statusText = 'MISS';
+                                } else if (status === 'holiday') {
+                                    statusClass = 'text-green-400';
+                                    statusText = 'HOLIDAY';
+                                } else if (hasContent) {
+                                    statusClass = 'subject-green';
+                                    statusText = '✓';
+                                }
+                            }
+
+                            if (isUnclickable) {
+                                cell.innerHTML = `
+                                    <div class="text-center p-1 opacity-30">
+                                        <div class="text-xs sm:text-sm text-white">${subjectName}</div>
+                                    </div>
+                                `;
+                            } else {
+                                cell.innerHTML = `
+                                    <div class="text-center p-1 cursor-pointer hover:bg-white/10 rounded-lg transition-all"
+                                        onclick="openEditModal(${dayIndex}, ${row.period}, '${subjectName}')">
+                                        <div class="text-xs sm:text-sm ${statusClass}">${subjectName}</div>
+                                        <div class="text-xs ${statusClass} mt-0.5 hidden sm:block">${statusText}</div>
+                                    </div>
+                                `;
+                            }
+                            tr.appendChild(cell);
                         }
-                        tr.appendChild(cell);
+
+                        timetableBody.appendChild(tr);
                     }
+                });
 
-                    timetableBody.appendChild(tr);
+                // Update mobile day selector
+                if (isMobile() && currentMobileDay) {
+                    showDay(currentMobileDay);
                 }
-            });
-        }
-
-        // Helper function to parse time string to minutes
-        function parseTime(timeStr) {
-            const [hours, minutes] = timeStr.split(':').map(Number);
-            return hours * 60 + minutes;
-        }
-
-        // Open edit modal
-        window.openEditModal = async function(dayIndex, period, subjectName) {
-            const dayNames = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
-            const dayNamesZH = ['星期一', '星期二', '星期三', '星期四', '星期五'];
-            
-            editingSubject = { dayIndex, period, subjectName };
-            deleteClicks = 0;
-            currentStatus = '';
-            
-            const data = await loadData();
-            const subjectId = getSubjectId(dayIndex, period);
-            const record = data[subjectId];
-            const hasContent = record && record.content && record.content.trim();
-
-            editTitle.textContent = subjectName;
-            editSubject.textContent = `${dayNamesZH[dayIndex - 1]} (${dayNames[dayIndex - 1]}) - 第 ${period} 節`;
-            editBox.value = hasContent ? record.content : '';
-            
-            // Set status
-            currentStatus = record?.status || '';
-            updateStatusButtons();
-
-            // Show/hide delete button based on content
-            if (hasContent || currentStatus) {
-                editDelete.classList.remove('hidden');
-                deleteCounter.classList.add('hidden');
-            } else {
-                editDelete.classList.add('hidden');
-                deleteCounter.classList.add('hidden');
-            }
-            
-            editMsg.innerText = '';
-            editModal.classList.remove('hidden-element');
-            editModal.classList.add('visible-element');
-            editBox.focus();
-        };
-
-        // Update status buttons appearance
-        function updateStatusButtons() {
-            if (currentStatus === 'miss') {
-                btnMiss.className = 'flex-1 py-2 rounded-xl border border-red-500 bg-red-500/20 text-red-400 transition-all text-sm font-bold';
-                btnHoliday.className = 'flex-1 py-2 rounded-xl border border-gray-700 bg-gray-800/50 text-gray-500 transition-all text-sm font-bold';
-            } else if (currentStatus === 'holiday') {
-                btnMiss.className = 'flex-1 py-2 rounded-xl border border-gray-700 bg-gray-800/50 text-gray-500 transition-all text-sm font-bold';
-                btnHoliday.className = 'flex-1 py-2 rounded-xl border border-green-500 bg-green-500/20 text-green-400 transition-all text-sm font-bold';
-            } else {
-                btnMiss.className = 'flex-1 py-2 rounded-xl border border-gray-700 bg-gray-800/50 text-gray-400 transition-all text-sm font-bold';
-                btnHoliday.className = 'flex-1 py-2 rounded-xl border border-gray-700 bg-gray-800/50 text-gray-400 transition-all text-sm font-bold';
-            }
-        }
-
-        // Status button handlers
-        btnMiss.onclick = () => {
-            currentStatus = currentStatus === 'miss' ? '' : 'miss';
-            updateStatusButtons();
-        };
-
-        btnHoliday.onclick = () => {
-            currentStatus = currentStatus === 'holiday' ? '' : 'holiday';
-            updateStatusButtons();
-        };
-
-        // Close edit modal
-        function closeEditModal() {
-            editModal.classList.remove('visible-element');
-            editModal.classList.add('hidden-element');
-            editingSubject = null;
-            deleteClicks = 0;
-        }
-
-        editClose.onclick = closeEditModal;
-
-        // Close modal on outside click
-        editModal.onclick = (e) => {
-            if (e.target === editModal) closeEditModal();
-        };
-
-        // Close modal on Escape
-        document.onkeydown = (e) => {
-            if (e.key === 'Escape') closeEditModal();
-        };
-
-        // Confirm / Submit
-        editConfirm.onclick = async () => {
-            const content = editBox.value.trim();
-            const { dayIndex, period, subjectName } = editingSubject;
-            const subjectId = getSubjectId(dayIndex, period);
-
-            if (!content && !currentStatus) {
-                editMsg.innerText = "請輸入內容或選擇 MISS/HOLIDAY";
-                return;
             }
 
-            editConfirm.disabled = true;
-            editConfirm.classList.add('opacity-50');
-            editMsg.innerText = "📡 Uplinking...";
+            // Open edit modal
+            window.openEditModal = async function(dayIndex, period, subjectName) {
+                const dayNames = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
+                const dayNamesZH = ['星期一', '星期二', '星期三', '星期四', '星期五'];
+                
+                editingSubject = { dayIndex, period, subjectName };
+                deleteClicks = 0;
+                currentStatus = '';
+                
+                const data = await loadData();
+                const subjectId = getSubjectId(dayIndex, period);
+                const record = data[subjectId];
+                const hasContent = record && record.content && record.content.trim();
 
-            try {
-                const success = await saveData(subjectId, content, dayIndex, period, currentStatus);
-                if (success) {
-                    editMsg.innerText = "✨ SUCCESS";
-                    editConfirm.disabled = false;
-                    editConfirm.classList.remove('opacity-50');
+                editTitle.textContent = subjectName;
+                editSubject.textContent = `${dayNamesZH[dayIndex - 1]} (${dayNames[dayIndex - 1]}) - 第 ${period} 節`;
+                editBox.value = hasContent ? record.content : '';
+                
+                currentStatus = record?.status || '';
+                updateStatusButtons();
 
-                    // Show success toast
-                    successText.textContent = 'SUCCESS';
-                    successToast.classList.remove('hidden-element');
-                    successToast.classList.add('visible-element');
-
-                    // Close modal and refresh
-                    setTimeout(() => {
-                        closeEditModal();
-                        successToast.classList.remove('visible-element');
-                        successToast.classList.add('hidden-element');
-                        renderTimetable();
-                    }, 1000);
+                if (hasContent || currentStatus) {
+                    editDelete.classList.remove('hidden');
+                    deleteCounter.classList.add('hidden');
                 } else {
-                    editMsg.innerText = "❌ 儲存失敗 - 請檢查網絡或重新整理頁面";
-                    editConfirm.disabled = false;
-                    editConfirm.classList.remove('opacity-50');
+                    editDelete.classList.add('hidden');
+                    deleteCounter.classList.add('hidden');
                 }
-            } catch (e) {
-                editMsg.innerText = "❌ 連接失敗 - 請檢查網絡";
-                editConfirm.disabled = false;
-                editConfirm.classList.remove('opacity-50');
+                
+                editMsg.innerText = '';
+                editModal.classList.remove('hidden-element');
+                editModal.classList.add('visible-element');
+                editBox.focus();
+            };
+
+            // Update status buttons appearance
+            function updateStatusButtons() {
+                if (currentStatus === 'miss') {
+                    btnMiss.className = 'flex-1 py-2.5 sm:py-3 rounded-xl border border-red-500 bg-red-500/20 text-red-400 transition-all text-sm sm:text-base font-bold';
+                    btnHoliday.className = 'flex-1 py-2.5 sm:py-3 rounded-xl border border-gray-700 bg-gray-800/50 text-gray-500 transition-all text-sm sm:text-base font-bold';
+                } else if (currentStatus === 'holiday') {
+                    btnMiss.className = 'flex-1 py-2.5 sm:py-3 rounded-xl border border-gray-700 bg-gray-800/50 text-gray-500 transition-all text-sm sm:text-base font-bold';
+                    btnHoliday.className = 'flex-1 py-2.5 sm:py-3 rounded-xl border border-green-500 bg-green-500/20 text-green-400 transition-all text-sm sm:text-base font-bold';
+                } else {
+                    btnMiss.className = 'flex-1 py-2.5 sm:py-3 rounded-xl border border-gray-700 bg-gray-800/50 text-gray-400 transition-all text-sm sm:text-base font-bold';
+                    btnHoliday.className = 'flex-1 py-2.5 sm:py-3 rounded-xl border border-gray-700 bg-gray-800/50 text-gray-400 transition-all text-sm sm:text-base font-bold';
+                }
             }
-        };
 
-        // Delete button click
-        editDelete.onclick = () => {
-            deleteClicks++;
-            deleteCounter.classList.remove('hidden');
-            deleteCounter.textContent = `Click ${deleteClicks}/3 to delete`;
-            editDelete.classList.add('delete-pulse');
-            
-            setTimeout(() => editDelete.classList.remove('delete-pulse'), 500);
+            // Status button handlers
+            btnMiss.onclick = () => {
+                currentStatus = currentStatus === 'miss' ? '' : 'miss';
+                updateStatusButtons();
+            };
 
-            if (deleteClicks >= 3) {
-                deleteSubject();
+            btnHoliday.onclick = () => {
+                currentStatus = currentStatus === 'holiday' ? '' : 'holiday';
+                updateStatusButtons();
+            };
+
+            // Close edit modal
+            function closeEditModal() {
+                editModal.classList.remove('visible-element');
+                editModal.classList.add('hidden-element');
+                editingSubject = null;
+                deleteClicks = 0;
             }
-        };
 
-        // Delete subject
-        async function deleteSubject() {
-            const { dayIndex, period } = editingSubject;
-            const subjectId = getSubjectId(dayIndex, period);
-            
-            editDelete.disabled = true;
-            editDelete.classList.add('opacity-50');
-            editMsg.innerText = "🗑️ Deleting...";
+            editClose.onclick = closeEditModal;
 
-            try {
-                const success = await deleteData(subjectId);
-                if (success) {
-                    editMsg.innerText = "✨ DELETED";
-                    
-                    // Show success toast
-                    successText.textContent = 'DELETED';
-                    successToast.classList.remove('hidden-element');
-                    successToast.classList.add('visible-element');
-                    
-                    // Close modal and refresh
-                    setTimeout(() => {
-                        closeEditModal();
+            // Close modal on outside click
+            editModal.onclick = (e) => {
+                if (e.target === editModal) closeEditModal();
+            };
+
+            // Close modal on Escape
+            document.onkeydown = (e) => {
+                if (e.key === 'Escape') {
+                    closeEditModal();
+                    closeDayView();
+                }
+            };
+
+            // Confirm / Submit
+            editConfirm.onclick = async () => {
+                const content = editBox.value.trim();
+                const { dayIndex, period, subjectName } = editingSubject;
+                const subjectId = getSubjectId(dayIndex, period);
+
+                if (!content && !currentStatus) {
+                    editMsg.innerText = "請輸入內容或選擇 MISS/HOLIDAY";
+                    return;
+                }
+
+                editConfirm.disabled = true;
+                editConfirm.classList.add('opacity-50');
+                editMsg.innerText = "📡 Uplinking...";
+
+                try {
+                    const success = await saveData(subjectId, content, dayIndex, period, currentStatus);
+                    if (success) {
+                        editMsg.innerText = "✨ SUCCESS";
+                        editConfirm.disabled = false;
+                        editConfirm.classList.remove('opacity-50');
+
                         successText.textContent = 'SUCCESS';
-                        successToast.classList.remove('visible-element');
-                        successToast.classList.add('hidden-element');
-                        renderTimetable();
-                    }, 1000);
-                } else {
-                    editMsg.innerText = "❌ 刪除失敗 - 請檢查網絡或重新整理頁面";
+                        successToast.classList.remove('hidden-element');
+                        successToast.classList.add('visible-element');
+
+                        setTimeout(() => {
+                            closeEditModal();
+                            successToast.classList.remove('visible-element');
+                            successToast.classList.add('hidden-element');
+                            renderTimetable();
+                        }, 1000);
+                    } else {
+                        editMsg.innerText = "❌ 儲存失敗 - 請檢查網絡";
+                        editConfirm.disabled = false;
+                        editConfirm.classList.remove('opacity-50');
+                    }
+                } catch (e) {
+                    editMsg.innerText = "❌ 連接失敗 - 請檢查網絡";
+                    editConfirm.disabled = false;
+                    editConfirm.classList.remove('opacity-50');
+                }
+            };
+
+            // Delete button click
+            editDelete.onclick = () => {
+                deleteClicks++;
+                deleteCounter.classList.remove('hidden');
+                deleteCounter.textContent = `Click ${deleteClicks}/3 to delete`;
+                editDelete.classList.add('delete-pulse');
+                
+                setTimeout(() => editDelete.classList.remove('delete-pulse'), 500);
+
+                if (deleteClicks >= 3) {
+                    deleteSubject();
+                }
+            };
+
+            // Delete subject
+            async function deleteSubject() {
+                const { dayIndex, period } = editingSubject;
+                const subjectId = getSubjectId(dayIndex, period);
+                
+                editDelete.disabled = true;
+                editDelete.classList.add('opacity-50');
+                editMsg.innerText = "🗑️ Deleting...";
+
+                try {
+                    const success = await deleteData(subjectId);
+                    if (success) {
+                        editMsg.innerText = "✨ DELETED";
+                        
+                        successText.textContent = 'DELETED';
+                        successToast.classList.remove('hidden-element');
+                        successToast.classList.add('visible-element');
+                        
+                        setTimeout(() => {
+                            closeEditModal();
+                            successText.textContent = 'SUCCESS';
+                            successToast.classList.remove('visible-element');
+                            successToast.classList.add('hidden-element');
+                            renderTimetable();
+                        }, 1000);
+                    } else {
+                        editMsg.innerText = "❌ 刪除失敗 - 請檢查網絡";
+                        deleteClicks = 0;
+                        deleteCounter.classList.add('hidden');
+                        editDelete.disabled = false;
+                        editDelete.classList.remove('opacity-50');
+                    }
+                } catch (e) {
+                    editMsg.innerText = "❌ 連接失敗 - 請檢查網絡";
                     deleteClicks = 0;
                     deleteCounter.classList.add('hidden');
                     editDelete.disabled = false;
                     editDelete.classList.remove('opacity-50');
                 }
-            } catch (e) {
-                editMsg.innerText = "❌ 連接失敗 - 請檢查網絡";
-                deleteClicks = 0;
-                deleteCounter.classList.add('hidden');
-                editDelete.disabled = false;
-                editDelete.classList.remove('opacity-50');
             }
-        }
 
-        // Click anywhere to show timetable
-        document.body.onclick = (e) => {
-            if (e.target.closest('#editModal')) return;
-            if (e.target.closest('.timetable-cell')) return;
+            // Click anywhere to show timetable
+            document.body.onclick = (e) => {
+                if (e.target.closest('#editModal')) return;
+                if (e.target.closest('.timetable-cell')) return;
+                if (e.target.closest('#dayViewModal')) return;
 
-            if (!mainContent.classList.contains('visible-element')) {
-                logoContainer.classList.add('fade-out');
-                setTimeout(() => {
-                    logoContainer.classList.add('hidden-element');
-                    mainContent.classList.remove('hidden-element');
-                    mainContent.classList.add('visible-element');
-                }, 300);
-            }
-        };
+                if (!mainContent.classList.contains('visible-element')) {
+                    logoContainer.classList.add('fade-out');
+                    setTimeout(() => {
+                        logoContainer.classList.add('hidden-element');
+                        mainContent.classList.remove('hidden-element');
+                        mainContent.classList.add('visible-element');
+                    }, 300);
+                }
+            };
 
-        // Initial render
-        updateWeekLabel();
-        renderTimetable();
-    </script>
-</body>
-</html>
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                if (isMobile() && currentMobileDay) {
+                    showDay(currentMobileDay);
+                }
+            });
+
+            // Initial render
+            updateWeekLabel();
+            renderTimetable();
+        </script>
+    </body>
+    </html>
