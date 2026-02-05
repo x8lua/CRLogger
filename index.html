@@ -84,6 +84,20 @@
 
     <!-- Main Content - Hidden initially -->
     <div class="hidden-element w-full max-w-7xl mt-32" id="mainContent">
+        <!-- Week Navigation -->
+        <div class="glass rounded-2xl p-3 mb-4 flex items-center justify-between">
+            <button id="prevWeek" class="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-xl text-white font-bold transition-all">
+                ◀ 上一週
+            </button>
+            <div class="text-center">
+                <h2 id="weekLabel" class="text-lg font-bold text-blue-400">Current Week</h2>
+                <p id="weekDates" class="text-sm text-gray-400 mt-1">Feb 3 - Feb 9, 2026</p>
+            </div>
+            <button id="nextWeek" class="px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 rounded-xl text-white font-bold transition-all">
+                下一週 ▶
+            </button>
+        </div>
+
         <!-- Header -->
         <div class="glass rounded-2xl p-4 mb-4 text-center">
             <h1 class="text-2xl font-bold text-white">聖若瑟教區中學第五校（中文部）</h1>
@@ -209,7 +223,6 @@
         ];
 
         // State
-        let currentDay = getHKToday();
         let editingSubject = null;
         let deleteClicks = 0;
         let currentStatus = ''; // '', 'miss', 'holiday'
@@ -232,13 +245,88 @@
         const successToast = document.getElementById('successToast');
         const successText = document.getElementById('successText');
         const timeDisplay = document.getElementById('time');
+        const prevWeekBtn = document.getElementById('prevWeek');
+        const nextWeekBtn = document.getElementById('nextWeek');
+        const weekLabel = document.getElementById('weekLabel');
+        const weekDates = document.getElementById('weekDates');
 
-        // Get today's index in Hong Kong timezone (GMT+8)
+        // Week navigation state
+        let weekOffset = 0;
+
+        // Get HK today with week offset
         function getHKToday() {
             const now = new Date();
             const hkTime = new Date(now.getTime() + (8 * 60 * 60 * 1000) - (now.getTimezoneOffset() * 60 * 1000));
             return hkTime.getDay();
         }
+
+        // Get HK date with week offset
+        function getHKDate() {
+            const now = new Date();
+            const hkTime = new Date(now.getTime() + (8 * 60 * 60 * 1000) - (now.getTimezoneOffset() * 60 * 1000));
+            // Add week offset (7 days per week)
+            hkTime.setDate(hkTime.getDate() + (weekOffset * 7));
+            return hkTime;
+        }
+
+        // Get current day index with week offset
+        function getCurrentDayWithOffset() {
+            const hkDate = getHKDate();
+            return hkDate.getDay();
+        }
+
+        // Update week label
+        function updateWeekLabel() {
+            const hkDate = getHKDate();
+            const currentDay = hkDate.getDay(); // 0 = Sunday
+
+            // Calculate Monday of the week
+            const monday = new Date(hkDate);
+            monday.setDate(hkDate.getDate() - currentDay + 1);
+
+            // Calculate Sunday of the week
+            const sunday = new Date(hkDate);
+            sunday.setDate(hkDate.getDate() - currentDay + 7);
+
+            const options = { month: 'short', day: 'numeric' };
+            const startStr = monday.toLocaleDateString('en-US', options);
+            const endStr = sunday.toLocaleDateString('en-US', options);
+            const yearStr = sunday.getFullYear();
+
+            if (weekOffset === 0) {
+                weekLabel.textContent = '本周 Current Week';
+            } else if (weekOffset === 1) {
+                weekLabel.textContent = '下一週 Next Week';
+            } else if (weekOffset === -1) {
+                weekLabel.textContent = '上一週 Previous Week';
+            } else if (weekOffset > 0) {
+                weekLabel.textContent = `+${weekOffset} 週`;
+            } else {
+                weekLabel.textContent = `${weekOffset} 週`;
+            }
+
+            weekDates.textContent = `${startStr} - ${endStr}, ${yearStr}`;
+
+            // Update button states
+            prevWeekBtn.disabled = weekOffset <= -52; // Prevent going back too far
+            nextWeekBtn.disabled = weekOffset >= 52;
+            prevWeekBtn.classList.toggle('opacity-50', weekOffset <= -52);
+            nextWeekBtn.classList.toggle('opacity-50', weekOffset >= 52);
+        }
+
+        // Navigate to previous week
+        prevWeekBtn.onclick = () => {
+            weekOffset--;
+            updateWeekLabel();
+            renderTimetable();
+        };
+
+        // Navigate to next week
+        nextWeekBtn.onclick = () => {
+            weekOffset++;
+            updateWeekLabel();
+            renderTimetable();
+        };
 
         // Update time display (GMT+8)
         function updateTime() {
@@ -255,62 +343,122 @@
         updateTime();
         setInterval(updateTime, 1000);
 
-        // Generate unique ID for a subject
+        // Generate unique ID for a subject (includes week offset)
         function getSubjectId(dayIndex, period) {
-            return `day_${dayIndex}_period_${period}`;
+            return `week_${weekOffset}_day_${dayIndex}_period_${period}`;
         }
 
         // Get data from Supabase
         async function loadData() {
             const data = {};
             try {
+                console.log('Loading data from Supabase...');
                 const res = await fetch(`${URL}/rest/v1/logs?select=*`, {
                     headers: {
                         'apikey': KEY,
                         'Authorization': `Bearer ${KEY}`
                     }
                 });
+                console.log('Load response status:', res.status);
                 const records = await res.json();
+                console.log('Loaded records:', records.length);
                 records.forEach(record => {
-                    data[record.id] = record;
+                    // Use session_id as the key
+                    data[record.session_id] = record;
                 });
             } catch (e) {
                 console.error('Failed to load data:', e);
+                alert(`載入數據失敗: ${e.message}`);
             }
             return data;
         }
 
-        // Save data to Supabase
+        // Save data to Supabase - Simplified (only store content)
         async function saveData(subjectId, content, dayIndex, period, status) {
-            const res = await fetch(`${URL}/rest/v1/logs`, {
-                method: 'POST',
-                headers: {
-                    'apikey': KEY,
-                    'Authorization': `Bearer ${KEY}`,
-                    'Content-Type': 'application/json',
-                    'Prefer': 'return=minimal'
-                },
-                body: JSON.stringify({
-                    id: subjectId,
-                    content: content,
-                    day_index: dayIndex,
-                    period: period,
-                    status: status
-                })
-            });
-            return res.ok;
+            console.log('Attempting to save:', { subjectId, content, status });
+
+            // Check if content or status is provided
+            if (!content && !status) {
+                console.log('No content or status to save');
+                return true; // Nothing to save, but not an error
+            }
+
+            try {
+                // First try to delete existing record (by session_id)
+                console.log('Deleting existing record...');
+                const deleteRes = await fetch(`${URL}/rest/v1/logs?session_id=eq.${subjectId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'apikey': KEY,
+                        'Authorization': `Bearer ${KEY}`
+                    }
+                });
+                console.log('Delete response status:', deleteRes.status);
+
+                // Prepare data - only store content
+                const saveData = {
+                    session_id: subjectId,
+                    content: content
+                };
+
+                // Add optional fields if they have values
+                if (dayIndex) saveData.day_index = dayIndex;
+                if (period) saveData.period = period;
+                if (status) saveData.status = status;
+
+                console.log('Sending data:', saveData);
+
+                // Then insert new record
+                const res = await fetch(`${URL}/rest/v1/logs`, {
+                    method: 'POST',
+                    headers: {
+                        'apikey': KEY,
+                        'Authorization': `Bearer ${KEY}`,
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify(saveData)
+                });
+
+                console.log('POST response status:', res.status);
+
+                if (!res.ok) {
+                    const errorText = await res.text();
+                    console.error('Supabase error:', res.status, res.statusText, errorText);
+                    alert(`儲存失敗 (${res.status}): ${errorText}`);
+                    return false;
+                }
+                return true;
+            } catch (e) {
+                console.error('Connection error:', e);
+                alert(`連接錯誤: ${e.message}`);
+                return false;
+            }
         }
 
         // Delete data from Supabase
         async function deleteData(subjectId) {
-            const res = await fetch(`${URL}/rest/v1/logs?id=eq.${subjectId}`, {
-                method: 'DELETE',
-                headers: {
-                    'apikey': KEY,
-                    'Authorization': `Bearer ${KEY}`
+            try {
+                console.log('Deleting:', subjectId);
+                const res = await fetch(`${URL}/rest/v1/logs?session_id=eq.${subjectId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'apikey': KEY,
+                        'Authorization': `Bearer ${KEY}`
+                    }
+                });
+
+                console.log('Delete response:', res.status);
+                if (!res.ok && res.status !== 404) { // 404 is OK - record doesn't exist
+                    const errorText = await res.text();
+                    console.error('Supabase delete error:', res.status, errorText);
+                    return false;
                 }
-            });
-            return res.ok;
+                return true;
+            } catch (e) {
+                console.error('Delete connection error:', e);
+                return false;
+            }
         }
 
         // Render the timetable
@@ -324,7 +472,19 @@
             // Combine and sort all rows by start time
             const allRows = [];
             
-            // Add merged break rows (apply to all days)
+            // Add day-specific break rows (Mon-Tue and Thu-Fri only)
+            daySpecificBreaks.forEach(row => {
+                const startTime = row.time.split('-')[0];
+                allRows.push({
+                    type: 'break',
+                    time: row.time,
+                    label: row.label,
+                    merged: false,
+                    days: row.days,
+                    startTime: parseTime(startTime)
+                });
+            });
+            // Add merged break rows (apply to all days - Mon to Fri)
             specialRows.forEach(row => {
                 const startTime = row.time.split('-')[0];
                 allRows.push({
@@ -409,7 +569,7 @@
                         const record = data[subjectId];
                         const hasContent = record && record.content && record.content.trim();
                         const status = record?.status || '';
-                        const isToday = dayIndex === currentDay;
+                        const isToday = dayIndex === getCurrentDayWithOffset();
                         
                         const cell = document.createElement('td');
                         cell.className = `p-1 timetable-cell border border-gray-700/50 rounded-lg ${isToday ? 'today' : ''}`;
@@ -419,7 +579,12 @@
                         
                         // Check if unclickable (---)
                         const isUnclickable = subjectName === '---';
-                        
+
+                        // Debug log for Friday period 9
+                        if (dayIndex === 5 && row.period === 9) {
+                            console.log(`Friday Period 9: subjectName=${subjectName}, isUnclickable=${isUnclickable}`);
+                        }
+
                         let statusClass = 'subject-gray';
                         let statusText = '○';
                         
@@ -568,12 +733,12 @@
                     editMsg.innerText = "✨ SUCCESS";
                     editConfirm.disabled = false;
                     editConfirm.classList.remove('opacity-50');
-                    
+
                     // Show success toast
                     successText.textContent = 'SUCCESS';
                     successToast.classList.remove('hidden-element');
                     successToast.classList.add('visible-element');
-                    
+
                     // Close modal and refresh
                     setTimeout(() => {
                         closeEditModal();
@@ -582,12 +747,12 @@
                         renderTimetable();
                     }, 1000);
                 } else {
-                    editMsg.innerText = "❌ Error";
+                    editMsg.innerText = "❌ 儲存失敗 - 請檢查網絡或重新整理頁面";
                     editConfirm.disabled = false;
                     editConfirm.classList.remove('opacity-50');
                 }
             } catch (e) {
-                editMsg.innerText = "❌ Connection Failed";
+                editMsg.innerText = "❌ 連接失敗 - 請檢查網絡";
                 editConfirm.disabled = false;
                 editConfirm.classList.remove('opacity-50');
             }
@@ -635,14 +800,14 @@
                         renderTimetable();
                     }, 1000);
                 } else {
-                    editMsg.innerText = "❌ Delete Failed";
+                    editMsg.innerText = "❌ 刪除失敗 - 請檢查網絡或重新整理頁面";
                     deleteClicks = 0;
                     deleteCounter.classList.add('hidden');
                     editDelete.disabled = false;
                     editDelete.classList.remove('opacity-50');
                 }
             } catch (e) {
-                editMsg.innerText = "❌ Error";
+                editMsg.innerText = "❌ 連接失敗 - 請檢查網絡";
                 deleteClicks = 0;
                 deleteCounter.classList.add('hidden');
                 editDelete.disabled = false;
@@ -654,7 +819,7 @@
         document.body.onclick = (e) => {
             if (e.target.closest('#editModal')) return;
             if (e.target.closest('.timetable-cell')) return;
-            
+
             if (!mainContent.classList.contains('visible-element')) {
                 logoContainer.classList.add('fade-out');
                 setTimeout(() => {
@@ -666,6 +831,7 @@
         };
 
         // Initial render
+        updateWeekLabel();
         renderTimetable();
     </script>
 </body>
