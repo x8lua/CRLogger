@@ -3,127 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRLogger | Elite Logging System</title>
+    <title>CRLogger Pro 📝</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;500;700&display=swap');
-        
         body {
-            font-family: 'JetBrains+Mono', monospace;
-            background: url('assets/bg.jpg') no-repeat center center fixed;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            background-image: url('assets/bg.jpg');
             background-size: cover;
-            overflow: hidden; /* 防止滾動 */
+            background-position: center;
+            background-attachment: fixed;
+            background-blend-mode: overlay;
         }
-
-        .glass-panel {
-            background: rgba(0, 0, 0, 0.75);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
-
-        /* 隱藏輸入框，直到點擊畫面 */
-        #inputOverlay {
-            display: none;
-            animation: fadeIn 0.3s ease-out;
+        .glow:focus {
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
         }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
+        .pulse-glow {
+            animation: pulse-glow 2s ease-in-out infinite;
         }
-
-        .cursor-blink {
-            animation: blink 1s step-end infinite;
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
+            50% { box-shadow: 0 0 40px rgba(59, 130, 246, 0.6); }
         }
-
-        @keyframes blink {
-            50% { opacity: 0; }
+        .modal {
+            opacity: 0;
+            visibility: hidden;
+            transform: scale(0.9);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .modal.active {
+            opacity: 1;
+            visibility: visible;
+            transform: scale(1);
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center justify-between py-12 px-6 cursor-pointer" id="mainCanvas">
+<body class="min-h-screen flex items-center justify-center p-6 text-white font-sans" id="page">
 
-    <div class="w-full flex justify-center animate__animated animate__fadeInDown">
-        <img src="assets/logo.png" alt="CRLogger Logo" class="h-24 md:h-32 object-contain drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+    <!-- Logo Area -->
+    <div class="fixed top-8 left-1/2 transform -translate-x-1/2">
+        <img src="assets/logo.png" alt="CRLogger Pro Logo" class="h-24 w-auto drop-shadow-2xl pulse-glow">
     </div>
 
-    <div class="text-center space-y-4 pointer-events-none">
-        <h2 class="text-gray-400 tracking-[0.5em] uppercase text-sm font-light">System Status: Active</h2>
-        <h1 class="text-white text-4xl md:text-6xl font-bold tracking-tighter">Welcome!</h1>
-        <div id="clock" class="text-blue-400 text-xl md:text-2xl font-mono tracking-widest opacity-80">
-            YYYY/MM/DD HH:MM:SS
-        </div>
-        <p class="text-gray-500 text-xs animate-pulse mt-8 uppercase tracking-widest">Click anywhere to start logging <span class="cursor-blink">_</span></p>
+    <!-- Welcome Text & Time -->
+    <div class="fixed top-32 left-1/2 transform -translate-x-1/2 text-center">
+        <h2 class="text-3xl font-bold tracking-tight text-blue-400 mb-2">Welcome!</h2>
+        <p class="text-lg font-mono tracking-widest text-gray-300" id="time">Time now: --/--/-- --:--:--</p>
     </div>
 
-    <div id="inputOverlay" class="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
-        <div class="glass-panel max-w-lg w-full rounded-3xl p-8 transform transition-all" id="inputBox">
-            <div class="flex justify-between items-center mb-6">
-                <span class="text-blue-400 text-xs font-bold tracking-widest">NEW DATA ENTRY</span>
-                <button id="closeBtn" class="text-gray-500 hover:text-white transition-colors text-xl">&times;</button>
+    <!-- Main Card - Click anywhere to open modal -->
+    <div class="glass max-w-md w-full rounded-3xl p-12 shadow-2xl cursor-pointer hover:bg-white/5 transition-all duration-500" id="mainCard">
+        <div class="flex flex-col items-center justify-center h-full min-h-[200px]">
+            <div class="w-20 h-20 bg-blue-600/20 rounded-full flex items-center justify-center mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
             </div>
-            <textarea id="logInput" 
-                class="w-full h-48 bg-black/30 border border-white/10 rounded-2xl p-4 text-white outline-none focus:border-blue-500 transition-all placeholder-gray-700 text-lg resize-none"
-                placeholder="Secure logging in progress..."></textarea>
-            <button id="submitBtn" 
-                class="mt-6 w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-all uppercase tracking-widest">
-                Authorize Sync
-            </button>
-            <p id="statusMsg" class="text-center mt-4 text-[10px] text-gray-500 font-mono"></p>
+            <p class="text-gray-400 text-lg">Click anywhere to write</p>
+            <p class="text-gray-600 text-sm mt-2">記錄課堂重點</p>
         </div>
     </div>
 
-    <div class="text-gray-600 text-[10px] tracking-widest uppercase pointer-events-none">
-        Encrypted Endpoint: fgcahyuzvvralgvyaspo
+    <!-- Submit Modal -->
+    <div class="modal fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-6" id="modal">
+        <div class="glass max-w-lg w-full rounded-3xl p-8 shadow-2xl relative">
+            <!-- Close Button -->
+            <button id="close" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                <h1 class="text-xl font-bold tracking-tight text-blue-400">CRLogger <span class="text-xs font-light text-gray-500">v1.0</span></h1>
+            </div>
+            
+            <textarea id="box" 
+                class="glow w-full h-48 bg-gray-900/50 border border-gray-700 rounded-2xl p-4 text-white outline-none transition-all placeholder-gray-600 text-lg resize-none"
+                placeholder="喺呢度記錄課堂重點..."></textarea>
+
+            <button id="send" 
+                class="mt-6 w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2">
+                <span>同步至雲端</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                </svg>
+            </button>
+            
+            <p id="msg" class="text-center mt-6 text-xs font-mono tracking-widest text-gray-500 uppercase"></p>
+        </div>
     </div>
 
     <script type="module">
-        // 你的 Supabase Config (已根據之前的紀錄填好)
+        // 已經幫你填好咗！🚀
         const URL = "https://fgcahyuzvvralgvyaspo.supabase.co";
         const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZnY2FoeXV6dnZyYWxndnlhc3BvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyODQzMjAsImV4cCI6MjA4NTg2MDMyMH0.h0jZ3DYHgqo5J4us-gpmHGdpBgkVmFJG_svPqIBYIZI";
 
-        // 動態時鐘功能
-        function updateClock() {
+        const mainCard = document.getElementById('mainCard');
+        const modal = document.getElementById('modal');
+        const closeBtn = document.getElementById('close');
+        const box = document.getElementById('box');
+        const btn = document.getElementById('send');
+        const msg = document.getElementById('msg');
+        const timeDisplay = document.getElementById('time');
+
+        // Update time
+        function updateTime() {
             const now = new Date();
-            const pad = (n) => n.toString().padStart(2, '0');
-            const timeStr = `${now.getFullYear()}/${pad(now.getMonth()+1)}/${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-            document.getElementById('clock').innerText = timeStr;
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            timeDisplay.innerText = `Time now: ${year}/${month}/${day} ${hours}:${minutes}:${seconds}`;
         }
-        setInterval(updateClock, 1000);
-        updateClock();
+        updateTime();
+        setInterval(updateTime, 1000);
 
-        // 點擊顯示輸入框
-        const canvas = document.getElementById('mainCanvas');
-        const overlay = document.getElementById('inputOverlay');
-        const inputBox = document.getElementById('inputBox');
-        const closeBtn = document.getElementById('closeBtn');
-
-        canvas.addEventListener('click', (e) => {
-            if (e.target === canvas || canvas.contains(e.target)) {
-                overlay.style.display = 'flex';
-                document.getElementById('logInput').focus();
-            }
-        });
-
-        closeBtn.onclick = (e) => {
-            e.stopPropagation();
-            overlay.style.display = 'none';
+        // Open modal when clicking anywhere on the page (except when clicking inside the modal)
+        mainCard.onclick = () => {
+            modal.classList.add('active');
+            box.focus();
         };
 
-        // 防止點擊輸入框區域關閉自己
-        inputBox.onclick = (e) => e.stopPropagation();
+        // Close modal
+        closeBtn.onclick = () => {
+            modal.classList.remove('active');
+        };
 
-        // 提交功能
-        const submitBtn = document.getElementById('submitBtn');
-        const logInput = document.getElementById('logInput');
-        const statusMsg = document.getElementById('statusMsg');
+        // Close modal when clicking outside
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
+            }
+        };
 
-        submitBtn.onclick = async () => {
-            const content = logInput.value.trim();
+        // Close modal on Escape key
+        document.onkeydown = (e) => {
+            if (e.key === 'Escape') {
+                modal.classList.remove('active');
+            }
+        };
+
+        // Submit functionality
+        btn.onclick = async () => {
+            const content = box.value.trim();
             if(!content) return;
 
-            statusMsg.innerText = "UPLINKING TO CLOUD...";
+            msg.innerText = "📡 Uplinking...";
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
             
             try {
                 const res = await fetch(`${URL}/rest/v1/logs`, {
@@ -131,22 +166,35 @@
                     headers: {
                         'apikey': KEY,
                         'Authorization': `Bearer ${KEY}`,
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Prefer': 'return=minimal'
                     },
                     body: JSON.stringify({ content: content })
                 });
 
                 if(res.ok) {
-                    statusMsg.innerText = "DATA SECURED SUCCESSFULLY";
-                    logInput.value = "";
-                    setTimeout(() => { overlay.style.display = 'none'; statusMsg.innerText = ""; }, 1500);
+                    msg.innerText = "✨ Successfully synced to cloud";
+                    box.value = "";
+                    if(navigator.vibrate) navigator.vibrate(50);
+                    
+                    // Close modal after success
+                    setTimeout(() => {
+                        modal.classList.remove('active');
+                        msg.innerText = "";
+                    }, 1500);
                 } else {
-                    statusMsg.innerText = "UPLINK ERROR: AUTH_FAILED";
+                    const err = await res.json();
+                    msg.innerText = "❌ Error: " + (err.message || "Unknown");
+                    console.error(err);
                 }
             } catch (e) {
-                statusMsg.innerText = "UPLINK ERROR: CONNECTION_LOST";
+                msg.innerText = "❌ Connection Failed";
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50');
+                setTimeout(() => { if(msg.innerText.includes('Successfully')) msg.innerText = ""; }, 3000);
             }
-        };
+        }
     </script>
 </body>
 </html>
